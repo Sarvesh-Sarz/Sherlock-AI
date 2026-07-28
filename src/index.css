@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply antialiased;
+  }
+
+  body {
+    @apply bg-case-bg text-case-text font-sans;
+  }
+
+  /* Keep the focus ring visible and consistent for keyboard users. */
+  :focus-visible {
+    outline: 2px solid theme('colors.case.brass');
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: theme('colors.case.brass');
+    color: theme('colors.case.bg');
+  }
+}
