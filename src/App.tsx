@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { TopBar } from './components/layout/TopBar';
 import { ModeToggle } from './components/landing/ModeToggle';
-import { Hero } from './components/landing/Hero';
+import { Hero } from './components/landing/LandingHeader';
 import { InvestigationForm } from './components/landing/InvestigationForm';
 import { RecentCases } from './components/landing/RecentCases';
 import type { InterfaceMode, InvestigationCase } from './types';
