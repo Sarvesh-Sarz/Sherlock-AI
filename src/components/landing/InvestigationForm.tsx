@@ -26,9 +26,6 @@ export function InvestigationForm({ value, onChange, onSubmit }: InvestigationFo
   return (
     <form onSubmit={handleSubmit} className="flex w-full flex-col items-center gap-5">
       <div className="w-full">
-        <span className="mb-3 block text-center font-mono text-xs uppercase tracking-widest2 text-case-brass">
-          New Case
-        </span>
         <label
           htmlFor="problem-description"
           className="mb-3 block text-center text-lg text-case-text"
