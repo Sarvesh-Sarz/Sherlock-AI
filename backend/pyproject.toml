@@ -1,0 +1,22 @@
+[project]
+name = "sherlock-ai-backend"
+version = "0.1.0"
+description = "Backend foundation for Sherlock AI — an AI-powered Windows diagnostic investigation tool."
+readme = "README.md"
+requires-python = ">=3.12"
+
+dependencies = [
+    "fastapi>=0.111",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "uvicorn[standard]>=0.30",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "httpx>=0.27",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
