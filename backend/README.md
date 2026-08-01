@@ -36,11 +36,29 @@ pytest
 
 ## Endpoints
 
-| Method | Path                       | Description                          |
-|--------|----------------------------|---------------------------------------|
-| GET    | `/health`                  | Service liveness check                |
-| POST   | `/investigation/start`     | Open a new investigation              |
-| GET    | `/investigation/{case_id}` | Get the current status of a case      |
+| Method | Path                       | Description                                    |
+|--------|----------------------------|-------------------------------------------------|
+| GET    | `/health`                  | Service liveness check                          |
+| POST   | `/investigation/start`     | Open a new investigation, runs diagnostic tools |
+| GET    | `/investigation/{case_id}` | Get the current status of a case, incl. evidence |
+
+## Diagnostic tools
+
+`app/tools/` holds individual diagnostic tools. Each exposes a single
+`run() -> ToolResult` function and never raises — failures come back as
+an error `ToolResult` instead. `InvestigationService` runs every
+registered tool synchronously when a case is opened and attaches each
+result to the case as `evidence`.
+
+Implemented so far:
+
+- **`cpu.py`** — CPU usage percentage, physical/logical core counts, and
+  current/max frequency, via `psutil`.
+
+Planned (not yet implemented): `memory.py`, `disk.py`, `battery.py`,
+`wifi.py`, `startup.py`. Adding one means writing the module and adding
+one line to the `_DIAGNOSTIC_TOOLS` registry in
+`app/services/investigation_service.py`.
 
 ## Scope
 
@@ -48,10 +66,10 @@ This foundation intentionally does **not** implement:
 
 - AI / LLM reasoning (Ollama or otherwise)
 - LangGraph or any agent orchestration framework
-- Actual Windows diagnostics
+- Windows Event Log diagnostics, or any tool beyond `cpu.py`
 - RAG / retrieval
 - A real database (an in-memory repository stands in for now)
 
-See `app/engine/` for the placeholder Planner, Tool Manager, Reasoner,
+See `app/agents/` for the placeholder Planner, Tool Manager, Reasoner,
 Memory, and Report Generator classes these will build on, and the main
 project README for overall architecture and roadmap.

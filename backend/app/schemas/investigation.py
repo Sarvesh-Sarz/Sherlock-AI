@@ -12,6 +12,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.investigation import CaseStatus, Investigation
+from app.models.tool_result import ToolResult
 
 
 class InvestigationRequest(BaseModel):
@@ -35,7 +36,8 @@ class InvestigationResponse(BaseModel):
     status: CaseStatus
     problem_description: str
     created_at: datetime
-    message: str = "Investigation received. Diagnostics are not implemented yet."
+    evidence: list[ToolResult] = Field(default_factory=list)
+    message: str = "Investigation started. Reasoning and reporting are not implemented yet."
 
     @classmethod
     def from_domain(cls, investigation: Investigation) -> "InvestigationResponse":
@@ -44,6 +46,7 @@ class InvestigationResponse(BaseModel):
             status=investigation.status,
             problem_description=investigation.problem_description,
             created_at=investigation.created_at,
+            evidence=investigation.evidence,
         )
 
 
@@ -55,6 +58,7 @@ class InvestigationStatus(BaseModel):
     problem_description: str
     created_at: datetime
     updated_at: datetime
+    evidence: list[ToolResult] = Field(default_factory=list)
     findings: list[str] = Field(default_factory=list)
     report: str | None = None
 
@@ -66,6 +70,7 @@ class InvestigationStatus(BaseModel):
             problem_description=investigation.problem_description,
             created_at=investigation.created_at,
             updated_at=investigation.updated_at,
+            evidence=investigation.evidence,
             findings=investigation.findings,
             report=investigation.report,
         )

@@ -12,6 +12,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from uuid import uuid4
 
+from app.models.tool_result import ToolResult
+
 
 class CaseStatus(str, Enum):
     """Lifecycle states of an investigation.
@@ -40,6 +42,7 @@ class Investigation:
     status: CaseStatus
     created_at: datetime
     updated_at: datetime
+    evidence: list[ToolResult] = field(default_factory=list)
     findings: list[str] = field(default_factory=list)
     report: str | None = None
 
@@ -54,3 +57,18 @@ class Investigation:
             created_at=now,
             updated_at=now,
         )
+
+    def add_evidence(self, result: ToolResult) -> None:
+        """Attach a diagnostic tool's result and refresh the update time.
+
+        Kept on the entity itself, rather than left to callers to mutate
+        `evidence` and `updated_at` separately, so "evidence changed" and
+        "the record was updated" can never drift apart.
+        """
+        self.evidence.append(result)
+        self.updated_at = datetime.now(timezone.utc)
+
+    def mark_status(self, status: CaseStatus) -> None:
+        """Transition to a new lifecycle status and refresh the update time."""
+        self.status = status
+        self.updated_at = datetime.now(timezone.utc)
