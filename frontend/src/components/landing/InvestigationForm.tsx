@@ -1,31 +1,40 @@
 import type { FormEvent } from 'react';
-import { Search } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 interface InvestigationFormProps {
   value: string;
   onChange: (value: string) => void;
   onSubmit: (value: string) => void;
+  isSubmitting?: boolean;
 }
 
 /**
  * The main call-to-action: a case-intake textarea plus the "Start
  * Investigation" button. Submission is lifted to the parent via
- * onSubmit — this component has no idea what happens after that,
- * since there's no backend to send it to yet.
+ * onSubmit; this component only knows whether one is in flight
+ * (`isSubmitting`), not what happens with the result.
  */
-export function InvestigationForm({ value, onChange, onSubmit }: InvestigationFormProps) {
+export function InvestigationForm({
+  value,
+  onChange,
+  onSubmit,
+  isSubmitting = false,
+}: InvestigationFormProps) {
   const isEmpty = value.trim().length === 0;
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (isEmpty) return;
+    if (isEmpty || isSubmitting) return;
     onSubmit(value.trim());
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex w-full flex-col items-center gap-5">
       <div className="w-full">
+        <span className="mb-3 block text-center font-mono text-xs uppercase tracking-widest2 text-case-brass">
+          New Case
+        </span>
         <label
           htmlFor="problem-description"
           className="mb-3 block text-center text-lg text-case-text"
@@ -41,13 +50,21 @@ export function InvestigationForm({ value, onChange, onSubmit }: InvestigationFo
             value={value}
             onChange={(event) => onChange(event.target.value)}
             placeholder="My laptop becomes slow after startup."
-            className="w-full resize-none bg-transparent text-base text-case-text placeholder:text-case-faint focus:outline-none"
+            disabled={isSubmitting}
+            className="w-full resize-none bg-transparent text-base text-case-text placeholder:text-case-faint focus:outline-none disabled:opacity-60"
           />
         </div>
       </div>
 
-      <Button type="submit" disabled={isEmpty}>
-        Start Investigation
+      <Button type="submit" disabled={isEmpty || isSubmitting}>
+        {isSubmitting ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} aria-hidden="true" />
+            Investigating…
+          </>
+        ) : (
+          'Start Investigation'
+        )}
       </Button>
     </form>
   );

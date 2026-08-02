@@ -17,6 +17,7 @@ export default {
           brass: '#C89B3C',
           'brass-hover': '#DDB158',
           'brass-dim': '#8A6B2A',
+          danger: '#B5544B',
         },
       },
       fontFamily: {
