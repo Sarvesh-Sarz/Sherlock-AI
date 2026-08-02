@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { TopBar } from './components/layout/TopBar';
 import { ModeToggle } from './components/landing/ModeToggle';
-import { Hero } from './components/landing/Hero';
+import { LandingHeader } from './components/landing/LandingHeader';
 import { InvestigationForm } from './components/landing/InvestigationForm';
 import { InvestigationResults } from './components/landing/InvestigationResults';
 import { RecentCases } from './components/landing/RecentCases';
@@ -47,7 +47,7 @@ function App() {
       </TopBar>
 
       <main className="mx-auto flex max-w-content flex-col items-center gap-16 px-6 pb-24 pt-16 sm:pt-24">
-        <Hero />
+        <LandingHeader />
 
         <InvestigationForm
           value={problemDescription}
