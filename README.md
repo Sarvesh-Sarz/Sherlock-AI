@@ -5,10 +5,8 @@ It is an Application which helps and guides you to find and fix your laptop's pe
 The workflow of the application will be:
 
 User:
-"My laptop becomes slow after startup."
-
-        │
-        ▼
+"My laptop becomes slow after startup.
+        |
 Complaint Analyzer
         │
         ▼
