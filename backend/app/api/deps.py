@@ -9,6 +9,7 @@ swap from in-memory storage to a real database touches only
 
 from functools import lru_cache
 
+from app.planner.planner import Planner
 from app.repositories.investigation_repository import (
     InMemoryInvestigationRepository,
     InvestigationRepository,
@@ -28,6 +29,20 @@ def get_investigation_repository() -> InvestigationRepository:
     return InMemoryInvestigationRepository()
 
 
+@lru_cache
+def get_planner() -> Planner:
+    """Return the process-wide Planner.
+
+    Cached since `Planner` is stateless (its rules are module-level data
+    in `app.planner.rules`) — a fresh instance per request would behave
+    identically, this just avoids the pointless reallocation.
+    """
+    return Planner()
+
+
 def get_investigation_service() -> InvestigationService:
     """Build an InvestigationService for the current request."""
-    return InvestigationService(repository=get_investigation_repository())
+    return InvestigationService(
+        repository=get_investigation_repository(),
+        planner=get_planner(),
+    )

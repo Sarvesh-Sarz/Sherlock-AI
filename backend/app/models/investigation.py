@@ -12,16 +12,18 @@ from datetime import datetime, timezone
 from enum import Enum
 from uuid import uuid4
 
+from app.models.investigation_plan import InvestigationPlan
 from app.models.tool_result import ToolResult
 
 
 class CaseStatus(str, Enum):
     """Lifecycle states of an investigation.
 
-    Only RECEIVED is reachable today, since nothing downstream of intake
-    is implemented yet. The rest of the states describe the pipeline the
-    later components (Planner, Tool Manager, Reasoner, Report Generator)
-    are expected to drive the case through.
+    Only RECEIVED and INVESTIGATING are reachable today: every case is
+    planned (see `app.planner.planner.Planner`) and, if the plan calls
+    for it, has `cpu` run against it. The remaining states describe the
+    rest of the pipeline the later components (Tool Manager, Reasoner,
+    Report Generator) are expected to drive the case through.
     """
 
     RECEIVED = "received"
@@ -42,6 +44,7 @@ class Investigation:
     status: CaseStatus
     created_at: datetime
     updated_at: datetime
+    plan: InvestigationPlan | None = None
     evidence: list[ToolResult] = field(default_factory=list)
     findings: list[str] = field(default_factory=list)
     report: str | None = None
@@ -57,6 +60,11 @@ class Investigation:
             created_at=now,
             updated_at=now,
         )
+
+    def set_plan(self, plan: InvestigationPlan) -> None:
+        """Attach the planner's output and refresh the update time."""
+        self.plan = plan
+        self.updated_at = datetime.now(timezone.utc)
 
     def add_evidence(self, result: ToolResult) -> None:
         """Attach a diagnostic tool's result and refresh the update time.

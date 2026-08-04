@@ -1,29 +1,29 @@
 """Future reasoning pipeline for an investigation.
 
-None of these components are implemented yet — see each module's
-docstring. They're scaffolded here as separate, single-purpose classes
-so `InvestigationService` has a stable place to wire them in once they
-exist, without a later restructure:
+Planning is implemented — see `app.planner.planner.Planner` — and is no
+longer a placeholder here. The stages below are still not implemented;
+each module's docstring explains what it will eventually do:
 
-    intake -> Planner -> ToolManager -> Reasoner -> ReportGenerator
-                              ^              |
-                              +---- Memory --+
+    Planner -> ToolManager -> Reasoner -> ReportGenerator
+    (done)         ^              |
+                    +---- Memory --+
 
-Planner: decides what to check.
-ToolManager: runs the actual diagnostic tools.
+ToolManager: runs the diagnostic tools a plan calls for. Today,
+InvestigationService does this directly for the one tool that exists
+(see `_DIAGNOSTIC_TOOLS` in `app.services.investigation_service`); once
+there are enough tools that this needs real orchestration (concurrency,
+retries, per-tool timeouts), it moves here.
 Reasoner: interprets results and decides what happens next.
 Memory: retains context within and across investigations.
 ReportGenerator: turns a resolved case into a human-readable report.
 """
 
-from app.engine.memory import Memory
-from app.engine.planner import Planner
-from app.engine.reasoner import Reasoner
-from app.engine.report_generator import ReportGenerator
-from app.engine.tool_manager import ToolManager
+from app.agents.memory import Memory
+from app.agents.reasoner import Reasoner
+from app.agents.report_generator import ReportGenerator
+from app.agents.tool_manager import ToolManager
 
 __all__ = [
-    "Planner",
     "ToolManager",
     "Reasoner",
     "Memory",
