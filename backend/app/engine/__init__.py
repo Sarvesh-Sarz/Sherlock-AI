@@ -18,10 +18,10 @@ Memory: retains context within and across investigations.
 ReportGenerator: turns a resolved case into a human-readable report.
 """
 
-from app.agents.memory import Memory
-from app.agents.reasoner import Reasoner
-from app.agents.report_generator import ReportGenerator
-from app.agents.tool_manager import ToolManager
+from app.engine.memory import Memory
+from app.engine.reasoner import Reasoner
+from app.engine.report_generator import ReportGenerator
+from app.engine.tool_manager import ToolManager
 
 __all__ = [
     "ToolManager",

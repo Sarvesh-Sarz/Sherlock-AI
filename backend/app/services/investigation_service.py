@@ -13,10 +13,10 @@ import logging
 from collections.abc import Callable
 from datetime import datetime, timezone
 
-from app.agents.memory import Memory
-from app.agents.reasoner import Reasoner
-from app.agents.report_generator import ReportGenerator
-from app.agents.tool_manager import ToolManager
+from app.engine.memory import Memory
+from app.engine.reasoner import Reasoner
+from app.engine.report_generator import ReportGenerator
+from app.engine.tool_manager import ToolManager
 from app.models.investigation import CaseStatus, Investigation
 from app.models.investigation_plan import InvestigationPlan
 from app.models.tool_result import ToolResult, ToolStatus
