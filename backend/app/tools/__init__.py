@@ -11,6 +11,7 @@ collects one kind of evidence about the machine. A tool:
   `app.models.tool_result`) — the uniform shape every tool shares.
 
 Tools are plain functions rather than classes: there's no state to hold
-between runs, and the future Tool Manager just needs one callable per
-tool to invoke.
+between runs, and `tool_manager.py` — also in this package, since it
+exists specifically to run the tools defined here — just needs one
+callable per tool to invoke.
 """

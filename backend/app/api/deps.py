@@ -15,6 +15,7 @@ from app.repositories.investigation_repository import (
     InvestigationRepository,
 )
 from app.services.investigation_service import InvestigationService
+from app.tools.tool_manager import ToolManager
 
 
 @lru_cache
@@ -40,9 +41,21 @@ def get_planner() -> Planner:
     return Planner()
 
 
+@lru_cache
+def get_tool_manager() -> ToolManager:
+    """Return the process-wide ToolManager.
+
+    Cached since `ToolManager` is stateless — its registry is fixed at
+    class-definition time — so one shared instance behaves identically
+    to a fresh one per request.
+    """
+    return ToolManager()
+
+
 def get_investigation_service() -> InvestigationService:
     """Build an InvestigationService for the current request."""
     return InvestigationService(
         repository=get_investigation_repository(),
         planner=get_planner(),
+        tool_manager=get_tool_manager(),
     )
