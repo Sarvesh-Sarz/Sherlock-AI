@@ -45,43 +45,44 @@ Sherlock AI acts as an autonomous diagnostic investigator. It receives a plain-l
 ---
 
 ## Current Architecture
-                           ┌─────────────────────────┐
-                           │   User Complaint (UI)   │
-                           └────────────┬────────────┘
-                                        │
-                                        ▼
-                           ┌─────────────────────────┐
-                           │  FastAPI REST Interface │
-                           └────────────┬────────────┘
-                                        │
-                                        ▼
-                           ┌─────────────────────────┐
-                           │  InvestigationPlanner   │
-                           └────────────┬────────────┘
-                                        │
-                                        ▼
-                           ┌─────────────────────────┐
-                           │       ToolManager       │
-                           └────────────┬────────────┘
-                                        │
-                ┌───────────────────────┴───────────────────────┐
-                ▼                                               ▼
-  ┌───────────────────────────┐                   ┌───────────────────────────┐
-  │         CPUTool           │                   │        MemoryTool         │
-  │  (Cores, Usage, Freq)     │                   │  (RAM, Swap, Availability)│
-  └─────────────┬─────────────┘                   └─────────────┬─────────────┘
-                │                                               │
-                └───────────────────────┬───────────────────────┘
-                                        │
-                                        ▼
-                           ┌─────────────────────────────┐
-                           │ Evidence Collection Payload │
-                           └────────────────┬────────────┘
-                                        │
-                                        ▼
-                           ┌─────────────────────────┐
-                           │  Investigation Report   │
-                           └─────────────────────────┘
+                          +-----------------------+
+                       |  User Complaint (UI)  |
+                       +-----------+-----------+
+                                   |
+                                   v
+                       +-----------------------+
+                       | FastAPI REST Interface|
+                       +-----------+-----------+
+                                   |
+                                   v
+                       +-----------------------+
+                       | InvestigationPlanner  |
+                       +-----------+-----------+
+                                   |
+                                   v
+                       +-----------------------+
+                       |      ToolManager      |
+                       +-----------+-----------+
+                                   |
+                  +----------------+----------------+
+                  |                                 |
+                  v                                 v
+        +-------------------+             +-------------------+
+        |      CPUTool      |             |    MemoryTool     |
+        | Cores/Usage/Freq  |             | RAM/Swap/Avail    |
+        +---------+---------+             +---------+---------+
+                  |                                 |
+                  +----------------+----------------+
+                                   |
+                                   v
+                       +-----------------------+
+                       | Evidence Collection   |
+                       +-----------+-----------+
+                                   |
+                                   v
+                       +-----------------------+
+                       | Investigation Report  |
+                       +-----------------------+
 
 
 ---
@@ -92,42 +93,43 @@ sherlock-ai/
 ├── backend/
 │   ├── app/
 │   │   ├── api/
-│   │   │   └── endpoints.py        # REST routing layer
+│   │   │   └── endpoints.py          # REST API endpoints
 │   │   ├── core/
-│   │   │   └── config.py           # Application settings
+│   │   │   └── config.py             # Application settings & environment vars
 │   │   ├── models/
-│   │   │   └── evidence.py         # Pydantic data contracts
+│   │   │   └── evidence.py           # Pydantic data schemas
 │   │   ├── services/
-│   │   │   ├── planner.py          # Rule-based investigation planner
-│   │   │   └── tool_manager.py     # Diagnostic tool execution orchestrator
+│   │   │   ├── planner.py            # Keyword-based investigation planner
+│   │   │   └── tool_manager.py       # Diagnostic execution orchestrator
 │   │   ├── tools/
-│   │   │   ├── base.py             # Abstract tool interface
-│   │   │   ├── cpu_tool.py         # CPU telemetry module
-│   │   │   └── memory_tool.py      # Memory telemetry module
-│   │   └── main.py                 # FastAPI application entrypoint
+│   │   │   ├── base.py               # Abstract BaseTool class
+│   │   │   ├── cpu_tool.py           # CPU diagnostic probe
+│   │   │   └── memory_tool.py        # Memory diagnostic probe
+│   │   └── main.py                   # FastAPI application entrypoint
 │   ├── tests/
-│   │   ├── test_planner.py         # Test suite for planner logic
-│   │   └── test_tools.py           # Test suite for diagnostic modules
-│   ├── requirements.txt            # Python dependencies
-│   └── pytest.ini                  # Pytest configuration
+│   │   ├── test_planner.py           # Unit tests for planner
+│   │   └── test_tools.py             # Unit tests for diagnostic probes
+│   ├── pytest.ini                    # Pytest configuration
+│   └── requirements.txt              # Python dependencies
 ├── frontend/
 │   ├── src/
-│   │   ├── assets/                 # Branding assets and icons
+│   │   ├── assets/                   # Static branding assets
 │   │   ├── components/
-│   │   │   ├── EvidenceCard.tsx    # Individual metric display unit
-│   │   │   ├── InvestigationForm.tsx # User input control panel
-│   │   │   └── ResultsPanel.tsx    # Telemetry report display grid
+│   │   │   ├── EvidenceCard.tsx      # Individual telemetry card
+│   │   │   ├── InvestigationForm.tsx # User input console
+│   │   │   └── ResultsPanel.tsx      # Results display grid
 │   │   ├── types/
-│   │   │   └── index.ts            # TypeScript interface definitions
-│   │   ├── App.tsx                 # Root UI container
-│   │   ├── main.tsx                # React DOM entrypoint
-│   │   └── index.css               # Global Tailwind CSS directives
-│   ├── package.json
-│   ├── tailwind.config.js
-│   ├── tsconfig.json
-│   └── vite.config.ts
+│   │   │   └── index.ts              # TypeScript interface definitions
+│   │   ├── App.tsx                   # Main React component
+│   │   ├── index.css                 # Global CSS & Tailwind directives
+│   │   └── main.tsx                  # React DOM entrypoint
+│   ├── package.json                  # Node dependencies and scripts
+│   ├── tailwind.config.js            # Tailwind CSS styling config
+│   ├── tsconfig.json                 # TypeScript compiler configuration
+│   └── vite.config.ts                # Vite bundler config
+├── .gitignore
+├── LICENSE
 └── README.md
-
 
 ---
 
