@@ -90,46 +90,46 @@ Sherlock AI acts as an autonomous diagnostic investigator. It receives a plain-l
 ## Folder Structure
 
 sherlock-ai/
-├── backend/
-│   ├── app/
-│   │   ├── api/
-│   │   │   └── endpoints.py          # REST API endpoints
-│   │   ├── core/
-│   │   │   └── config.py             # Application settings & environment vars
-│   │   ├── models/
-│   │   │   └── evidence.py           # Pydantic data schemas
-│   │   ├── services/
-│   │   │   ├── planner.py            # Keyword-based investigation planner
-│   │   │   └── tool_manager.py       # Diagnostic execution orchestrator
-│   │   ├── tools/
-│   │   │   ├── base.py               # Abstract BaseTool class
-│   │   │   ├── cpu_tool.py           # CPU diagnostic probe
-│   │   │   └── memory_tool.py        # Memory diagnostic probe
-│   │   └── main.py                   # FastAPI application entrypoint
-│   ├── tests/
-│   │   ├── test_planner.py           # Unit tests for planner
-│   │   └── test_tools.py             # Unit tests for diagnostic probes
-│   ├── pytest.ini                    # Pytest configuration
-│   └── requirements.txt              # Python dependencies
-├── frontend/
-│   ├── src/
-│   │   ├── assets/                   # Static branding assets
-│   │   ├── components/
-│   │   │   ├── EvidenceCard.tsx      # Individual telemetry card
-│   │   │   ├── InvestigationForm.tsx # User input console
-│   │   │   └── ResultsPanel.tsx      # Results display grid
-│   │   ├── types/
-│   │   │   └── index.ts              # TypeScript interface definitions
-│   │   ├── App.tsx                   # Main React component
-│   │   ├── index.css                 # Global CSS & Tailwind directives
-│   │   └── main.tsx                  # React DOM entrypoint
-│   ├── package.json                  # Node dependencies and scripts
-│   ├── tailwind.config.js            # Tailwind CSS styling config
-│   ├── tsconfig.json                 # TypeScript compiler configuration
-│   └── vite.config.ts                # Vite bundler config
-├── .gitignore
-├── LICENSE
-└── README.md
+|-- backend/
+|   |-- app/
+|   |   |-- api/
+|   |   |   `-- endpoints.py
+|   |   |-- core/
+|   |   |   `-- config.py
+|   |   |-- models/
+|   |   |   `-- evidence.py
+|   |   |-- services/
+|   |   |   |-- planner.py
+|   |   |   `-- tool_manager.py
+|   |   |-- tools/
+|   |   |   |-- base.py
+|   |   |   |-- cpu_tool.py
+|   |   |   `-- memory_tool.py
+|   |   `-- main.py
+|   |-- tests/
+|   |   |-- test_planner.py
+|   |   `-- test_tools.py
+|   |-- pytest.ini
+|   `-- requirements.txt
+|-- frontend/
+|   |-- src/
+|   |   |-- assets/
+|   |   |-- components/
+|   |   |   |-- EvidenceCard.tsx
+|   |   |   |-- InvestigationForm.tsx
+|   |   |   `-- ResultsPanel.tsx
+|   |   |-- types/
+|   |   |   `-- index.ts
+|   |   |-- App.tsx
+|   |   |-- index.css
+|   |   `-- main.tsx
+|   |-- package.json
+|   |-- tailwind.config.js
+|   |-- tsconfig.json
+|   `-- vite.config.ts
+|-- .gitignore
+|-- LICENSE
+`-- README.md
 
 ---
 
