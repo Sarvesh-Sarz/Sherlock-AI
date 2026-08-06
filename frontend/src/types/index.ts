@@ -60,6 +60,16 @@ export interface CpuPayload {
   max_frequency: number | null;
 }
 
+/** Payload shape for the `memory` tool specifically, used only for display. */
+export interface MemoryPayload {
+  total_gb: number;
+  available_gb: number;
+  used_gb: number;
+  usage_percent: number;
+  swap_total_gb: number;
+  swap_used_gb: number;
+}
+
 /**
  * Mirrors `InvestigationResponse` from `POST /investigation/start`
  * (and, with the same fields present, `InvestigationStatus` from

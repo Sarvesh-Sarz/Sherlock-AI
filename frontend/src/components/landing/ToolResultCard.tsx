@@ -1,5 +1,5 @@
 import { CheckCircle2, XCircle } from 'lucide-react';
-import type { CpuPayload, ToolResult } from '../../types';
+import type { CpuPayload, MemoryPayload, ToolResult } from '../../types';
 import { LabeledValue } from '../ui/LabeledValue';
 
 interface ToolResultCardProps {
@@ -8,6 +8,7 @@ interface ToolResultCardProps {
 
 const TOOL_DISPLAY_NAMES: Record<string, string> = {
   cpu: 'CPU',
+  memory: 'Memory',
 };
 
 /**
@@ -61,6 +62,20 @@ function renderMetrics(result: ToolResult) {
     );
   }
 
+  if (result.tool_name === 'memory') {
+    const payload = result.payload as Partial<MemoryPayload>;
+    return (
+      <>
+        <LabeledValue label="Usage" value={formatPercent(payload.usage_percent)} />
+        <LabeledValue label="Total" value={formatGb(payload.total_gb)} />
+        <LabeledValue label="Used" value={formatGb(payload.used_gb)} />
+        <LabeledValue label="Available" value={formatGb(payload.available_gb)} />
+        <LabeledValue label="Swap Used" value={formatGb(payload.swap_used_gb)} />
+        <LabeledValue label="Swap Total" value={formatGb(payload.swap_total_gb)} />
+      </>
+    );
+  }
+
   const entries = Object.entries(result.payload);
   if (entries.length === 0) {
     return <p className="text-sm text-case-muted">No metrics reported.</p>;
@@ -90,6 +105,10 @@ function formatCount(value: number | null | undefined): string {
 
 function formatGhz(value: number | null | undefined): string {
   return typeof value === 'number' ? `${value.toFixed(2)} GHz` : '—';
+}
+
+function formatGb(value: number | null | undefined): string {
+  return typeof value === 'number' ? `${value.toFixed(2)} GB` : '—';
 }
 
 function formatKey(key: string): string {

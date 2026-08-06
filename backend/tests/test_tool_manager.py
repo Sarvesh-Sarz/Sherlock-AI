@@ -29,12 +29,30 @@ def test_execute_runs_cpu_when_planned() -> None:
     assert results[0].status in (ToolStatus.SUCCESS, ToolStatus.ERROR)
 
 
-def test_execute_skips_planned_tools_that_are_not_implemented() -> None:
-    """"memory", "disk", "battery", "wifi", and "startup" don't exist yet
-    — a plan naming them must be handled gracefully, not raise or return
-    a placeholder result for them.
+def test_execute_runs_memory_when_planned() -> None:
+    results = ToolManager().execute(_plan(["memory"]))
+
+    assert len(results) == 1
+    assert results[0].tool_name == "memory"
+    assert results[0].status in (ToolStatus.SUCCESS, ToolStatus.ERROR)
+
+
+def test_execute_runs_both_cpu_and_memory_when_a_plan_calls_for_both() -> None:
+    """The "slow" rule plans cpu, memory, startup, disk — this is what
+    ToolManager actually does with that plan: run the two that exist,
+    in registry order, and skip the two that don't.
     """
-    results = ToolManager().execute(_plan(["memory", "disk", "battery", "wifi", "startup"]))
+    results = ToolManager().execute(_plan(["cpu", "memory", "startup", "disk"]))
+
+    assert [r.tool_name for r in results] == ["cpu", "memory"]
+
+
+def test_execute_skips_planned_tools_that_are_not_implemented() -> None:
+    """"disk", "battery", "wifi", and "startup" don't exist yet — a plan
+    naming them must be handled gracefully, not raise or return a
+    placeholder result for them.
+    """
+    results = ToolManager().execute(_plan(["disk", "battery", "wifi", "startup"]))
 
     assert results == []
 
