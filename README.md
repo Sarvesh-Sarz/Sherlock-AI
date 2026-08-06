@@ -89,47 +89,49 @@ Sherlock AI acts as an autonomous diagnostic investigator. It receives a plain-l
 
 ## Folder Structure
 
+```
 sherlock-ai/
-|-- backend/
-|   |-- app/
-|   |   |-- api/
-|   |   |   `-- endpoints.py
-|   |   |-- core/
-|   |   |   `-- config.py
-|   |   |-- models/
-|   |   |   `-- evidence.py
-|   |   |-- services/
-|   |   |   |-- planner.py
-|   |   |   `-- tool_manager.py
-|   |   |-- tools/
-|   |   |   |-- base.py
-|   |   |   |-- cpu_tool.py
-|   |   |   `-- memory_tool.py
-|   |   `-- main.py
-|   |-- tests/
-|   |   |-- test_planner.py
-|   |   `-- test_tools.py
-|   |-- pytest.ini
-|   `-- requirements.txt
-|-- frontend/
-|   |-- src/
-|   |   |-- assets/
-|   |   |-- components/
-|   |   |   |-- EvidenceCard.tsx
-|   |   |   |-- InvestigationForm.tsx
-|   |   |   `-- ResultsPanel.tsx
-|   |   |-- types/
-|   |   |   `-- index.ts
-|   |   |-- App.tsx
-|   |   |-- index.css
-|   |   `-- main.tsx
-|   |-- package.json
-|   |-- tailwind.config.js
-|   |-- tsconfig.json
-|   `-- vite.config.ts
-|-- .gitignore
-|-- LICENSE
-`-- README.md
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   │   └── endpoints.py
+│   │   ├── core/
+│   │   │   └── config.py
+│   │   ├── models/
+│   │   │   └── evidence.py
+│   │   ├── services/
+│   │   │   ├── planner.py
+│   │   │   └── tool_manager.py
+│   │   ├── tools/
+│   │   │   ├── base.py
+│   │   │   ├── cpu_tool.py
+│   │   │   └── memory_tool.py
+│   │   └── main.py
+│   ├── tests/
+│   │   ├── test_planner.py
+│   │   └── test_tools.py
+│   ├── pytest.ini
+│   └── requirements.txt
+├── frontend/
+│   ├── src/
+│   │   ├── assets/
+│   │   ├── components/
+│   │   │   ├── EvidenceCard.tsx
+│   │   │   ├── InvestigationForm.tsx
+│   │   │   └── ResultsPanel.tsx
+│   │   ├── types/
+│   │   │   └── index.ts
+│   │   ├── App.tsx
+│   │   ├── index.css
+│   │   └── main.tsx
+│   ├── package.json
+│   ├── tailwind.config.js
+│   ├── tsconfig.json
+│   └── vite.config.ts
+├── .gitignore
+├── LICENSE
+└── README.md
+```
 
 ---
 
