@@ -1,6 +1,6 @@
 """Diagnostic tools.
 
-Each module here (cpu.py today; memory.py, disk.py, battery.py, wifi.py,
+Each module here (cpu.py, memory.py, disk.py today; battery.py, wifi.py,
 startup.py planned) exposes a single `run() -> ToolResult` function that
 collects one kind of evidence about the machine. A tool:
 

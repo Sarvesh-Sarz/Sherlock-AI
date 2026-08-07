@@ -1,5 +1,5 @@
 import { CheckCircle2, XCircle } from 'lucide-react';
-import type { CpuPayload, MemoryPayload, ToolResult } from '../../types';
+import type { CpuPayload, DiskPayload, MemoryPayload, ToolResult } from '../../types';
 import { LabeledValue } from '../ui/LabeledValue';
 
 interface ToolResultCardProps {
@@ -9,12 +9,13 @@ interface ToolResultCardProps {
 const TOOL_DISPLAY_NAMES: Record<string, string> = {
   cpu: 'CPU',
   memory: 'Memory',
+  disk: 'Disk',
 };
 
 /**
  * Renders exactly one ToolResult — tool name, status, collection time,
- * and its metrics. `cpu` gets its five metrics laid out with proper
- * labels and units; any other tool (memory, disk, battery, wifi,
+ * and its metrics. `cpu`, `memory`, and `disk` each get their metrics
+ * laid out with proper labels and units; any other tool (battery, wifi,
  * startup — none of which exist on the backend yet) falls back to
  * listing whatever keys its payload contains, so this component doesn't
  * need to change the day a new tool is added.
@@ -72,6 +73,19 @@ function renderMetrics(result: ToolResult) {
         <LabeledValue label="Available" value={formatGb(payload.available_gb)} />
         <LabeledValue label="Swap Used" value={formatGb(payload.swap_used_gb)} />
         <LabeledValue label="Swap Total" value={formatGb(payload.swap_total_gb)} />
+      </>
+    );
+  }
+
+  if (result.tool_name === 'disk') {
+    const payload = result.payload as Partial<DiskPayload>;
+    return (
+      <>
+        <LabeledValue label="Usage" value={formatPercent(payload.usage_percent)} />
+        <LabeledValue label="Total" value={formatGb(payload.total_gb)} />
+        <LabeledValue label="Used" value={formatGb(payload.used_gb)} />
+        <LabeledValue label="Free" value={formatGb(payload.free_gb)} />
+        <LabeledValue label="Filesystem" value={payload.filesystem ?? '—'} />
       </>
     );
   }

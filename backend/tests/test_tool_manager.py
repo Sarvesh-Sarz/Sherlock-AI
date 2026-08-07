@@ -37,29 +37,38 @@ def test_execute_runs_memory_when_planned() -> None:
     assert results[0].status in (ToolStatus.SUCCESS, ToolStatus.ERROR)
 
 
-def test_execute_runs_both_cpu_and_memory_when_a_plan_calls_for_both() -> None:
+def test_execute_runs_disk_when_planned() -> None:
+    results = ToolManager().execute(_plan(["disk"]))
+
+    assert len(results) == 1
+    assert results[0].tool_name == "disk"
+    assert results[0].status in (ToolStatus.SUCCESS, ToolStatus.ERROR)
+
+
+def test_execute_runs_cpu_memory_and_disk_when_a_plan_calls_for_all_of_them() -> None:
     """The "slow" rule plans cpu, memory, startup, disk — this is what
-    ToolManager actually does with that plan: run the two that exist,
-    in registry order, and skip the two that don't.
+    ToolManager actually does with that plan: run the three that exist,
+    in registry order, and skip the one ("startup") that doesn't.
     """
     results = ToolManager().execute(_plan(["cpu", "memory", "startup", "disk"]))
 
-    assert [r.tool_name for r in results] == ["cpu", "memory"]
+    assert [r.tool_name for r in results] == ["cpu", "memory", "disk"]
 
 
 def test_execute_skips_planned_tools_that_are_not_implemented() -> None:
-    """"disk", "battery", "wifi", and "startup" don't exist yet — a plan
-    naming them must be handled gracefully, not raise or return a
-    placeholder result for them.
+    """"battery", "wifi", and "startup" don't exist yet — a plan naming
+    them must be handled gracefully, not raise or return a placeholder
+    result for them.
     """
-    results = ToolManager().execute(_plan(["disk", "battery", "wifi", "startup"]))
+    results = ToolManager().execute(_plan(["battery", "wifi", "startup"]))
 
     assert results == []
 
 
 def test_execute_only_runs_planned_tools_not_the_whole_registry() -> None:
-    """cpu is implemented, but if the plan doesn't call for it, it must
-    not run — the registry is a capability list, not an execute-all list.
+    """cpu, memory, and disk are all implemented, but if the plan doesn't
+    call for any of them, none of them must run — the registry is a
+    capability list, not an execute-all list.
     """
     results = ToolManager().execute(_plan([]))
 

@@ -70,6 +70,15 @@ export interface MemoryPayload {
   swap_used_gb: number;
 }
 
+/** Payload shape for the `disk` tool specifically, used only for display. */
+export interface DiskPayload {
+  total_gb: number;
+  used_gb: number;
+  free_gb: number;
+  usage_percent: number;
+  filesystem: string | null;
+}
+
 /**
  * Mirrors `InvestigationResponse` from `POST /investigation/start`
  * (and, with the same fields present, `InvestigationStatus` from

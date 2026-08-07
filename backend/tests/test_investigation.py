@@ -15,14 +15,14 @@ def test_start_investigation_returns_case(client: TestClient) -> None:
     assert body["problem_description"] == "My laptop becomes slow after startup."
     assert body["case_id"]
 
-    # Two tools are wired up today: cpu and memory. "slow" plans both
-    # (plus "startup"/"disk", which aren't implemented yet and are
+    # Three tools are wired up today: cpu, memory, and disk. "slow" plans
+    # all of them (plus "startup", which isn't implemented yet and is
     # silently skipped by ToolManager). Numeric values are
     # environment-dependent, so assert on structure/types, not specific
     # numbers — a real machine could report literally anything valid here.
-    assert len(body["evidence"]) == 2
+    assert len(body["evidence"]) == 3
     evidence_by_tool = {item["tool_name"]: item for item in body["evidence"]}
-    assert set(evidence_by_tool) == {"cpu", "memory"}
+    assert set(evidence_by_tool) == {"cpu", "memory", "disk"}
 
     cpu_result = evidence_by_tool["cpu"]
     assert cpu_result["status"] in ("success", "error")
@@ -46,6 +46,17 @@ def test_start_investigation_returns_case(client: TestClient) -> None:
         assert "used_gb" in payload
         assert "swap_total_gb" in payload
         assert "swap_used_gb" in payload
+
+    disk_result = evidence_by_tool["disk"]
+    assert disk_result["status"] in ("success", "error")
+    assert "collected_at" in disk_result
+    if disk_result["status"] == "success":
+        payload = disk_result["payload"]
+        assert isinstance(payload["usage_percent"], (int, float))
+        assert "total_gb" in payload
+        assert "used_gb" in payload
+        assert "free_gb" in payload
+        assert "filesystem" in payload
 
 
 def test_start_investigation_rejects_empty_description(client: TestClient) -> None:
