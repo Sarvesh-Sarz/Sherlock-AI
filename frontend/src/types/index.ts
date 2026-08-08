@@ -70,13 +70,28 @@ export interface MemoryPayload {
   swap_used_gb: number;
 }
 
-/** Payload shape for the `disk` tool specifically, used only for display. */
-export interface DiskPayload {
+/**
+ * A single volume within the `disk` tool's payload — one per usable
+ * local drive/partition (e.g. `C:\`, `D:\`).
+ */
+export interface DiskVolume {
+  mountpoint: string;
   total_gb: number;
   used_gb: number;
   free_gb: number;
   usage_percent: number;
   filesystem: string | null;
+}
+
+/**
+ * Payload shape for the `disk` tool specifically, used only for
+ * display. A machine can have more than one local volume (this is the
+ * whole reason the payload is a list rather than a single set of
+ * fields — see `app.tools.disk` on the backend), so `volumes` can be
+ * empty (no usable local volumes found) but is never itself missing.
+ */
+export interface DiskPayload {
+  volumes: DiskVolume[];
 }
 
 /**

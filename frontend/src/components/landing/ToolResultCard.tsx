@@ -14,11 +14,13 @@ const TOOL_DISPLAY_NAMES: Record<string, string> = {
 
 /**
  * Renders exactly one ToolResult — tool name, status, collection time,
- * and its metrics. `cpu`, `memory`, and `disk` each get their metrics
- * laid out with proper labels and units; any other tool (battery, wifi,
- * startup — none of which exist on the backend yet) falls back to
- * listing whatever keys its payload contains, so this component doesn't
- * need to change the day a new tool is added.
+ * and its metrics. `cpu` and `memory` get their metrics laid out with
+ * proper labels and units in a flat grid; `disk` gets one such grid per
+ * volume, since a machine can have more than one (see `renderDiskBody`).
+ * Any other tool (battery, wifi, startup — none of which exist on the
+ * backend yet) falls back to listing whatever keys its payload
+ * contains, so this component doesn't need to change the day a new
+ * tool is added.
  */
 export function ToolResultCard({ result }: ToolResultCardProps) {
   const isSuccess = result.status === 'success';
@@ -40,11 +42,50 @@ export function ToolResultCard({ result }: ToolResultCardProps) {
         </span>
       </div>
 
-      {isSuccess ? (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">{renderMetrics(result)}</div>
-      ) : (
-        <p className="text-sm text-case-danger">{getErrorMessage(result)}</p>
-      )}
+      {isSuccess ? renderBody(result) : <p className="text-sm text-case-danger">{getErrorMessage(result)}</p>}
+    </div>
+  );
+}
+
+function renderBody(result: ToolResult) {
+  if (result.tool_name === 'disk') {
+    return renderDiskBody(result);
+  }
+
+  return <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">{renderMetrics(result)}</div>;
+}
+
+/**
+ * `disk` is the one tool whose payload isn't a flat set of metrics — a
+ * machine can have more than one local volume (C:, D:, ...), so this
+ * renders one labeled sub-section, each with its own metrics grid, per
+ * volume rather than trying to force multiple volumes' worth of numbers
+ * into a single flat grid where they'd be indistinguishable.
+ */
+function renderDiskBody(result: ToolResult) {
+  const payload = result.payload as Partial<DiskPayload>;
+  const volumes = payload.volumes ?? [];
+
+  if (volumes.length === 0) {
+    return <p className="text-sm text-case-muted">No usable local volumes were found.</p>;
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {volumes.map((volume) => (
+        <div key={volume.mountpoint}>
+          <p className="mb-2 font-mono text-xs uppercase tracking-wide text-case-faint">
+            {formatVolumeLabel(volume.mountpoint)}
+          </p>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <LabeledValue label="Usage" value={formatPercent(volume.usage_percent)} />
+            <LabeledValue label="Total" value={formatGb(volume.total_gb)} />
+            <LabeledValue label="Used" value={formatGb(volume.used_gb)} />
+            <LabeledValue label="Free" value={formatGb(volume.free_gb)} />
+            <LabeledValue label="Filesystem" value={volume.filesystem ?? '—'} />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -73,19 +114,6 @@ function renderMetrics(result: ToolResult) {
         <LabeledValue label="Available" value={formatGb(payload.available_gb)} />
         <LabeledValue label="Swap Used" value={formatGb(payload.swap_used_gb)} />
         <LabeledValue label="Swap Total" value={formatGb(payload.swap_total_gb)} />
-      </>
-    );
-  }
-
-  if (result.tool_name === 'disk') {
-    const payload = result.payload as Partial<DiskPayload>;
-    return (
-      <>
-        <LabeledValue label="Usage" value={formatPercent(payload.usage_percent)} />
-        <LabeledValue label="Total" value={formatGb(payload.total_gb)} />
-        <LabeledValue label="Used" value={formatGb(payload.used_gb)} />
-        <LabeledValue label="Free" value={formatGb(payload.free_gb)} />
-        <LabeledValue label="Filesystem" value={payload.filesystem ?? '—'} />
       </>
     );
   }
@@ -123,6 +151,14 @@ function formatGhz(value: number | null | undefined): string {
 
 function formatGb(value: number | null | undefined): string {
   return typeof value === 'number' ? `${value.toFixed(2)} GB` : '—';
+}
+
+function formatVolumeLabel(mountpoint: string): string {
+  // Windows drive mountpoints come back from the backend as "C:\\" —
+  // trimmed to "C:" to match how a drive is normally written. A bare
+  // root ("/" on Linux/macOS) has nothing to trim, so the `|| mountpoint`
+  // fallback keeps it as "/" instead of collapsing to an empty label.
+  return mountpoint.replace(/[\\/]+$/, '') || mountpoint;
 }
 
 function formatKey(key: string): string {

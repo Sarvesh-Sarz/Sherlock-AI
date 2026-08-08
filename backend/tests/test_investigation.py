@@ -52,11 +52,14 @@ def test_start_investigation_returns_case(client: TestClient) -> None:
     assert "collected_at" in disk_result
     if disk_result["status"] == "success":
         payload = disk_result["payload"]
-        assert isinstance(payload["usage_percent"], (int, float))
-        assert "total_gb" in payload
-        assert "used_gb" in payload
-        assert "free_gb" in payload
-        assert "filesystem" in payload
+        assert isinstance(payload["volumes"], list)
+        for volume in payload["volumes"]:
+            assert "mountpoint" in volume
+            assert isinstance(volume["usage_percent"], (int, float))
+            assert "total_gb" in volume
+            assert "used_gb" in volume
+            assert "free_gb" in volume
+            assert "filesystem" in volume
 
 
 def test_start_investigation_rejects_empty_description(client: TestClient) -> None:
