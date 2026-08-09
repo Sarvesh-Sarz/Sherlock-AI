@@ -45,22 +45,33 @@ def test_execute_runs_disk_when_planned() -> None:
     assert results[0].status in (ToolStatus.SUCCESS, ToolStatus.ERROR)
 
 
-def test_execute_runs_cpu_memory_and_disk_when_a_plan_calls_for_all_of_them() -> None:
-    """The "slow" rule plans cpu, memory, startup, disk — this is what
-    ToolManager actually does with that plan: run the three that exist,
-    in registry order, and skip the one ("startup") that doesn't.
+def test_execute_runs_startup_when_planned() -> None:
+    results = ToolManager().execute(_plan(["startup"]))
+
+    assert len(results) == 1
+    assert results[0].tool_name == "startup"
+    # Real winreg/filesystem access — the outcome depends entirely on
+    # the environment (this suite also runs on non-Windows machines,
+    # where every source is unavailable and startup.run() reports
+    # ERROR — see app.tools.startup and its own dedicated tests), but
+    # it must be one of the two valid statuses, and must not raise.
+    assert results[0].status in (ToolStatus.SUCCESS, ToolStatus.ERROR)
+
+
+def test_execute_runs_all_four_implemented_tools_when_a_plan_calls_for_them() -> None:
+    """The "slow" rule plans cpu, memory, startup, disk — all four are
+    implemented now, so ToolManager runs all four, in registry order.
     """
     results = ToolManager().execute(_plan(["cpu", "memory", "startup", "disk"]))
 
-    assert [r.tool_name for r in results] == ["cpu", "memory", "disk"]
+    assert [r.tool_name for r in results] == ["cpu", "memory", "disk", "startup"]
 
 
 def test_execute_skips_planned_tools_that_are_not_implemented() -> None:
-    """"battery", "wifi", and "startup" don't exist yet — a plan naming
-    them must be handled gracefully, not raise or return a placeholder
-    result for them.
+    """"battery" and "wifi" don't exist yet — a plan naming them must be
+    handled gracefully, not raise or return a placeholder result for them.
     """
-    results = ToolManager().execute(_plan(["battery", "wifi", "startup"]))
+    results = ToolManager().execute(_plan(["battery", "wifi"]))
 
     assert results == []
 

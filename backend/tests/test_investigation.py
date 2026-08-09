@@ -15,14 +15,13 @@ def test_start_investigation_returns_case(client: TestClient) -> None:
     assert body["problem_description"] == "My laptop becomes slow after startup."
     assert body["case_id"]
 
-    # Three tools are wired up today: cpu, memory, and disk. "slow" plans
-    # all of them (plus "startup", which isn't implemented yet and is
-    # silently skipped by ToolManager). Numeric values are
+    # Four tools are wired up today: cpu, memory, disk, and startup.
+    # "slow" plans all of them. Numeric/registry values are
     # environment-dependent, so assert on structure/types, not specific
     # numbers — a real machine could report literally anything valid here.
-    assert len(body["evidence"]) == 3
+    assert len(body["evidence"]) == 4
     evidence_by_tool = {item["tool_name"]: item for item in body["evidence"]}
-    assert set(evidence_by_tool) == {"cpu", "memory", "disk"}
+    assert set(evidence_by_tool) == {"cpu", "memory", "disk", "startup"}
 
     cpu_result = evidence_by_tool["cpu"]
     assert cpu_result["status"] in ("success", "error")
@@ -60,6 +59,23 @@ def test_start_investigation_returns_case(client: TestClient) -> None:
             assert "used_gb" in volume
             assert "free_gb" in volume
             assert "filesystem" in volume
+
+    # startup.run() reliably reports ERROR in this (non-Windows) test
+    # environment — see app.tools.startup — so both outcomes are valid
+    # here; the tool-specific behavior itself is covered exhaustively
+    # in tests/test_tools_startup.py.
+    startup_result = evidence_by_tool["startup"]
+    assert startup_result["status"] in ("success", "error")
+    assert "collected_at" in startup_result
+    if startup_result["status"] == "success":
+        payload = startup_result["payload"]
+        assert isinstance(payload["total_entries"], int)
+        assert isinstance(payload["entries"], list)
+        assert isinstance(payload["sources_unavailable"], list)
+        for entry in payload["entries"]:
+            assert "name" in entry
+            assert "command" in entry
+            assert "source" in entry
 
 
 def test_start_investigation_rejects_empty_description(client: TestClient) -> None:

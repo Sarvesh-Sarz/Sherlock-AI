@@ -1,5 +1,5 @@
 import { CheckCircle2, XCircle } from 'lucide-react';
-import type { CpuPayload, DiskPayload, MemoryPayload, ToolResult } from '../../types';
+import type { CpuPayload, DiskPayload, MemoryPayload, StartupPayload, ToolResult } from '../../types';
 import { LabeledValue } from '../ui/LabeledValue';
 
 interface ToolResultCardProps {
@@ -10,17 +10,18 @@ const TOOL_DISPLAY_NAMES: Record<string, string> = {
   cpu: 'CPU',
   memory: 'Memory',
   disk: 'Disk',
+  startup: 'Startup',
 };
 
 /**
  * Renders exactly one ToolResult — tool name, status, collection time,
  * and its metrics. `cpu` and `memory` get their metrics laid out with
  * proper labels and units in a flat grid; `disk` gets one such grid per
- * volume, since a machine can have more than one (see `renderDiskBody`).
- * Any other tool (battery, wifi, startup — none of which exist on the
- * backend yet) falls back to listing whatever keys its payload
- * contains, so this component doesn't need to change the day a new
- * tool is added.
+ * volume (see `renderDiskBody`); `startup` gets source counts plus a
+ * restrained list of entry names (see `renderStartupBody`). Any other
+ * tool (battery, wifi — neither exist on the backend yet) falls back to
+ * listing whatever keys its payload contains, so this component doesn't
+ * need to change the day a new tool is added.
  */
 export function ToolResultCard({ result }: ToolResultCardProps) {
   const isSuccess = result.status === 'success';
@@ -50,6 +51,10 @@ export function ToolResultCard({ result }: ToolResultCardProps) {
 function renderBody(result: ToolResult) {
   if (result.tool_name === 'disk') {
     return renderDiskBody(result);
+  }
+
+  if (result.tool_name === 'startup') {
+    return renderStartupBody(result);
   }
 
   return <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">{renderMetrics(result)}</div>;
@@ -86,6 +91,56 @@ function renderDiskBody(result: ToolResult) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * `startup` reports counts by source plus a flat list of entries — laid
+ * out as summary counts up top (matching the other cards' metrics
+ * grid), then a restrained plain list of entry names below. Deliberately
+ * doesn't show each entry's full command or judge any entry — this tool
+ * only collects evidence (see `app.tools.startup`), it doesn't label
+ * anything as slow or heavy.
+ */
+function renderStartupBody(result: ToolResult) {
+  const payload = result.payload as Partial<StartupPayload>;
+  const entries = payload.entries ?? [];
+  const sourcesUnavailable = payload.sources_unavailable ?? [];
+  const totalEntries = payload.total_entries ?? entries.length;
+
+  const userRunCount = entries.filter((entry) => entry.source === 'user_run').length;
+  const systemRunCount = entries.filter((entry) => entry.source === 'machine_run').length;
+  const startupFolderCount = entries.filter(
+    (entry) => entry.source === 'user_startup_folder' || entry.source === 'common_startup_folder',
+  ).length;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <LabeledValue label="Total Entries" value={String(totalEntries)} />
+        <LabeledValue label="User Run" value={String(userRunCount)} />
+        <LabeledValue label="System Run" value={String(systemRunCount)} />
+        <LabeledValue label="Startup Folder" value={String(startupFolderCount)} />
+      </div>
+
+      {entries.length > 0 ? (
+        <ul className="flex max-h-48 list-none flex-col gap-1 overflow-y-auto">
+          {entries.map((entry, index) => (
+            <li key={`${entry.source}-${entry.name}-${index}`} className="text-sm text-case-text">
+              {entry.name}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-case-muted">No startup entries were found.</p>
+      )}
+
+      {sourcesUnavailable.length > 0 ? (
+        <p className="text-xs text-case-faint">
+          Not checked: {sourcesUnavailable.map((item) => item.source).join(', ')}
+        </p>
+      ) : null}
     </div>
   );
 }

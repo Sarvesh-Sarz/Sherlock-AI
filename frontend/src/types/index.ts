@@ -95,6 +95,37 @@ export interface DiskPayload {
 }
 
 /**
+ * A single startup-entry source, mirroring `app.tools.startup`'s four
+ * fixed sources on the backend.
+ */
+export type StartupSource = 'user_run' | 'machine_run' | 'user_startup_folder' | 'common_startup_folder';
+
+/** A single autostart entry within the `startup` tool's payload. */
+export interface StartupEntry {
+  name: string;
+  command: string;
+  source: StartupSource;
+}
+
+/** A source the `startup` tool couldn't read, and why. */
+export interface StartupUnavailableSource {
+  source: string;
+  reason: string;
+}
+
+/**
+ * Payload shape for the `startup` tool specifically, used only for
+ * display. `entries` is not deduplicated across sources on the backend
+ * (the same program can legitimately appear from more than one
+ * mechanism), so it isn't here either.
+ */
+export interface StartupPayload {
+  total_entries: number;
+  entries: StartupEntry[];
+  sources_unavailable: StartupUnavailableSource[];
+}
+
+/**
  * Mirrors `InvestigationResponse` from `POST /investigation/start`
  * (and, with the same fields present, `InvestigationStatus` from
  * `GET /investigation/{case_id}`).

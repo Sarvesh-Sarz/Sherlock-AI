@@ -3,9 +3,9 @@
 Owns the registry of diagnostic tools Sherlock actually knows how to
 run, and executes whichever of a plan's tools are implemented. This is
 the one seam `InvestigationService` talks to instead of knowing about
-individual tools (`cpu.py`, `memory.py`, `disk.py`, and later more)
-directly — adding a new tool means registering it here, not touching
-the service.
+individual tools (`cpu.py`, `memory.py`, `disk.py`, `startup.py`, and
+later more) directly — adding a new tool means registering it here, not
+touching the service.
 """
 
 import logging
@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 
 from app.models.investigation_plan import InvestigationPlan
 from app.models.tool_result import ToolResult, ToolStatus
-from app.tools import cpu, disk, memory
+from app.tools import cpu, disk, memory, startup
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +23,9 @@ class ToolManager:
     """Executes the diagnostic tools a plan calls for."""
 
     # Tools Sherlock actually knows how to run today. Each future tool
-    # (battery, wifi, startup) is added by appending a (name, run) pair
-    # here — nothing else in this class, or in InvestigationService,
-    # needs to change for that.
+    # (battery, wifi) is added by appending a (name, run) pair here —
+    # nothing else in this class, or in InvestigationService, needs to
+    # change for that.
     #
     # This is a *capability* registry, separate from what a Planner
     # calls for: a plan can name tools that aren't implemented yet (see
@@ -39,15 +39,16 @@ class ToolManager:
         ("cpu", cpu.run),
         ("memory", memory.run),
         ("disk", disk.run),
+        ("startup", startup.run),
     ]
 
     def execute(self, plan: InvestigationPlan) -> list[ToolResult]:
         """Run every tool `plan.tools_to_execute` calls for that's implemented.
 
         Tools the plan names but Sherlock doesn't have yet (e.g.
-        "battery", "wifi", "startup") are skipped silently — that's
-        expected today, not an error, since only `cpu`, `memory`, and
-        `disk` are implemented so far.
+        "battery", "wifi") are skipped silently — that's expected today,
+        not an error, since only `cpu`, `memory`, `disk`, and `startup`
+        are implemented so far.
 
         Every registered tool already guards its own failures and
         returns an error `ToolResult` instead of raising (see
