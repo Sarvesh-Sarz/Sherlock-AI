@@ -9,11 +9,18 @@ swap from in-memory storage to a real database touches only
 
 from functools import lru_cache
 
+from app.core.config import get_settings
 from app.planner.planner import Planner
+from app.reasoning.baseline_reasoner import BaselineReasoner
+from app.reasoning.fallback_reasoner import FallbackReasoner
+from app.reasoning.ollama_reasoner import OllamaReasoner
+from app.reasoning.reasoner import Reasoner
 from app.repositories.investigation_repository import (
     InMemoryInvestigationRepository,
     InvestigationRepository,
 )
+from app.research.researcher import Researcher, UnconfiguredResearcher
+from app.research.tavily_researcher import TavilyResearcher
 from app.services.investigation_service import InvestigationService
 from app.tools.tool_manager import ToolManager
 
@@ -52,10 +59,51 @@ def get_tool_manager() -> ToolManager:
     return ToolManager()
 
 
+@lru_cache
+def get_researcher() -> Researcher:
+    """Return the process-wide Researcher.
+
+    Uses `TavilyResearcher` if `SHERLOCK_TAVILY_API_KEY` is configured,
+    otherwise falls back to `UnconfiguredResearcher` — Sherlock runs
+    with zero external research by default, per the research layer's
+    graceful-degradation requirement, not as an error condition.
+    """
+    settings = get_settings()
+    if settings.tavily_api_key:
+        return TavilyResearcher(api_key=settings.tavily_api_key)
+    return UnconfiguredResearcher()
+
+
+@lru_cache
+def get_reasoner() -> Reasoner:
+    """Return the process-wide Reasoner.
+
+    Tries a local Ollama-backed reasoner first and falls back to the
+    deterministic `BaselineReasoner` if Ollama isn't reachable, the
+    configured model isn't pulled, or its response doesn't parse into a
+    valid report (see `FallbackReasoner`, `OllamaReasoner`). Sherlock
+    works with zero LLM configured — exactly as it did before this
+    existed — and gets richer reasoning automatically the moment a
+    local model is available; nothing needs to be enabled explicitly.
+    Swapping in a different local backend (AMD-optimized inference,
+    another runtime) means changing this one function, not
+    `InvestigationService` or anything that calls it.
+    """
+    settings = get_settings()
+    ollama_reasoner = OllamaReasoner(
+        base_url=settings.ollama_base_url,
+        model=settings.ollama_model,
+        timeout_seconds=settings.ollama_timeout_seconds,
+    )
+    return FallbackReasoner(primary=ollama_reasoner, fallback=BaselineReasoner())
+
+
 def get_investigation_service() -> InvestigationService:
     """Build an InvestigationService for the current request."""
     return InvestigationService(
         repository=get_investigation_repository(),
         planner=get_planner(),
         tool_manager=get_tool_manager(),
+        researcher=get_researcher(),
+        reasoner=get_reasoner(),
     )

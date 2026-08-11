@@ -30,6 +30,23 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173",
     ]
 
+    # Optional. If unset, `app.api.deps.get_researcher` falls back to
+    # `UnconfiguredResearcher` and Sherlock runs with zero external
+    # research — a missing key is a normal, supported configuration,
+    # not an error. See `.env.example`.
+    tavily_api_key: str | None = None
+
+    # Local LLM reasoning via Ollama (https://ollama.com). No API key —
+    # Ollama runs locally, so "configured" just means "reachable at
+    # this URL with this model available". If it isn't,
+    # `app.api.deps.get_reasoner` falls back to the deterministic
+    # `BaselineReasoner` automatically (see `FallbackReasoner`); these
+    # defaults assume a locally-running default Ollama install, not a
+    # requirement to have one.
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_model: str = "llama3.1"
+    ollama_timeout_seconds: float = 15.0
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_prefix="SHERLOCK_",
