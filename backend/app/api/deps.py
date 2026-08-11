@@ -19,8 +19,6 @@ from app.repositories.investigation_repository import (
     InMemoryInvestigationRepository,
     InvestigationRepository,
 )
-from app.research.researcher import Researcher, UnconfiguredResearcher
-from app.research.tavily_researcher import TavilyResearcher
 from app.services.investigation_service import InvestigationService
 from app.tools.tool_manager import ToolManager
 
@@ -59,19 +57,6 @@ def get_tool_manager() -> ToolManager:
     return ToolManager()
 
 
-@lru_cache
-def get_researcher() -> Researcher:
-    """Return the process-wide Researcher.
-
-    Uses `TavilyResearcher` if `SHERLOCK_TAVILY_API_KEY` is configured,
-    otherwise falls back to `UnconfiguredResearcher` — Sherlock runs
-    with zero external research by default, per the research layer's
-    graceful-degradation requirement, not as an error condition.
-    """
-    settings = get_settings()
-    if settings.tavily_api_key:
-        return TavilyResearcher(api_key=settings.tavily_api_key)
-    return UnconfiguredResearcher()
 
 
 @lru_cache
@@ -104,6 +89,5 @@ def get_investigation_service() -> InvestigationService:
         repository=get_investigation_repository(),
         planner=get_planner(),
         tool_manager=get_tool_manager(),
-        researcher=get_researcher(),
         reasoner=get_reasoner(),
     )
