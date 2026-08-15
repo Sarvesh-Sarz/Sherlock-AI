@@ -15,6 +15,8 @@ from app.reasoning.baseline_reasoner import BaselineReasoner
 from app.reasoning.fallback_reasoner import FallbackReasoner
 from app.reasoning.ollama_reasoner import OllamaReasoner
 from app.reasoning.reasoner import Reasoner
+from app.research.researcher import UnconfiguredResearcher
+from app.research.tavily_researcher import TavilyResearcher
 from app.repositories.investigation_repository import (
     InMemoryInvestigationRepository,
     InvestigationRepository,
@@ -57,7 +59,21 @@ def get_tool_manager() -> ToolManager:
     return ToolManager()
 
 
+@lru_cache
+def get_researcher():
+    """Return the configured research backend.
 
+    Uses Tavily when an API key is configured. Otherwise Sherlock
+    gracefully falls back to an unconfigured researcher.
+    """
+    settings = get_settings()
+
+    if settings.tavily_api_key:
+        return TavilyResearcher(
+            api_key=settings.tavily_api_key
+        )
+
+    return UnconfiguredResearcher()
 
 @lru_cache
 def get_reasoner() -> Reasoner:
@@ -90,4 +106,5 @@ def get_investigation_service() -> InvestigationService:
         planner=get_planner(),
         tool_manager=get_tool_manager(),
         reasoner=get_reasoner(),
+        researcher=get_researcher(),
     )
