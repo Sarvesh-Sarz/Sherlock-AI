@@ -13,6 +13,7 @@ from enum import Enum
 from uuid import uuid4
 
 from app.models.investigation_plan import InvestigationPlan
+from app.models.investigation_report import InvestigationReport
 from app.models.tool_result import ToolResult
 
 
@@ -47,7 +48,7 @@ class Investigation:
     plan: InvestigationPlan | None = None
     evidence: list[ToolResult] = field(default_factory=list)
     findings: list[str] = field(default_factory=list)
-    report: str | None = None
+    report: InvestigationReport | None = None
 
     @classmethod
     def new(cls, problem_description: str) -> "Investigation":
@@ -80,3 +81,6 @@ class Investigation:
         """Transition to a new lifecycle status and refresh the update time."""
         self.status = status
         self.updated_at = datetime.now(timezone.utc)
+
+    def set_report(self, report: InvestigationReport) -> None:
+        self.report = report
