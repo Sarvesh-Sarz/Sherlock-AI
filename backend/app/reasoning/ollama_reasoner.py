@@ -46,14 +46,14 @@ diagnostic evidence (and, if present, internet research) to identify PLAUSIBLE c
 factors to a problem the user reported about their own machine.
 
 STRICT RULES — follow every one of these exactly:
-1. You may ONLY reference facts that appear verbatim in the EVIDENCE section you're given. Never \
-invent, assume, or infer a fact that isn't there. If the evidence doesn't cover something, don't \
-mention it.
+1.You may ONLY reference facts that appear in the EVIDENCE or RESEARCH sections.
+Never invent, assume, or infer a fact that isn't present in either section.
 2. Never state a hypothesis as a confirmed fact. Always use hedged language: "may be", "could be \
 contributing to", "is a plausible factor in". Never say a component "is failing", "is broken", \
 "is caused by", or use similarly definitive language.
-3. Every "supporting_evidence" entry must directly reference a real value from the EVIDENCE \
-section — never fabricate a number, a name, or a detail.
+3. Every "supporting_evidence" entry must directly reference a real value
+   from the EVIDENCE or RESEARCH sections — never fabricate a number,
+   name, or detail.
 4. If the evidence does not clearly support any hypothesis, return an empty "hypotheses" list. Do \
 not invent a plausible-sounding cause just to have something to say.
 5. Recommendations must be things the USER may look into or change manually. Never describe an \
@@ -225,4 +225,8 @@ def _format_evidence(evidence: list[ToolResult]) -> str:
 def _format_research(research: list[ResearchResult]) -> str:
     if not research:
         return "(No external research is available.)"
-    return "\n".join(f"- {item.title} ({item.source}): {item.snippet}" for item in research)
+
+    return "\n".join(
+        f"- {item.title}: {item.snippet[:500]}"
+        for item in research[:3]
+    )
