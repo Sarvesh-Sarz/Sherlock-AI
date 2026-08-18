@@ -1,4 +1,4 @@
-# Sherlock AI — Backend
+# Sherlock AI — Backend  (IN-PROGRESS)
 
 Backend foundation for Sherlock AI, an AI-powered Windows diagnostic
 investigation tool. This is a scaffold: placeholder endpoints and a
