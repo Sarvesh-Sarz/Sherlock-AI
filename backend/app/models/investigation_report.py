@@ -58,6 +58,14 @@ class Hypothesis(BaseModel):
     contradicting_evidence: list[str] = Field(default_factory=list)
     confidence: Confidence
 
+class Recommendation(BaseModel):
+    """One actionable troubleshooting recommendation."""
+
+    title: str
+    reason: str
+    steps: list[str] = Field(default_factory=list)
+    expected_result: str
+    priority: str
 
 class InvestigationReport(BaseModel):
     """The result of reasoning over a case's evidence (and, if
@@ -72,9 +80,9 @@ class InvestigationReport(BaseModel):
         default_factory=list,
         description="The observed facts this report reasoned over — copied from the case's evidence.",
     )
-    recommendations: list[str] = Field(
+    recommendations: list[Recommendation] = Field(
         default_factory=list,
-        description="Observational/manual guidance only. Never an action Sherlock took or will take.",
+        description="Actionable manual troubleshooting guidance for the user.",
     )
     confidence: Confidence
     research_sources: list[ResearchResult] = Field(default_factory=list)

@@ -59,7 +59,16 @@ not invent a plausible-sounding cause just to have something to say.
 5. Recommendations must be things the USER may look into or change manually. Never describe an \
 action you took or will take. Never recommend deleting system files, disabling security software, \
 or editing the registry.
-6. Respond with ONLY one JSON object, no text before or after it, matching exactly:
+6. Recommendations must be actionable for the USER, not generic advice.
+7. Each recommendation must contain concrete steps that a Windows user can perform manually.
+8. Prefer specific Windows UI paths when appropriate, such as:
+   "Open Task Manager → Startup apps."
+   Do not invent menu names or settings that are unrelated to the evidence.
+9. Every recommendation must be grounded in the evidence or research provided.
+10. Do not recommend an action merely because it is a common troubleshooting step if the evidence does not support it.
+11. Never instruct the user to delete system files, disable security software, modify the registry, or perform destructive actions.
+12. Keep recommendations ordered by priority: high, then medium, then low.
+13. Respond with ONLY one JSON object, no text before or after it, matching exactly:
 {
   "summary": "one or two sentence overview of what was found",
   "hypotheses": [
@@ -71,7 +80,18 @@ or editing the registry.
       "confidence": "low" | "medium" | "high"
     }
   ],
-  "recommendations": ["observational, manual guidance", "..."],
+  "recommendations": [
+    {
+        "title": "short action title",
+        "reason": "why this action is relevant to the evidence",
+        "steps": [
+        "specific step the user can perform",
+        "another specific step"
+        ],
+        "expected_result": "what improvement or observation the user should expect",
+        "priority": "high" | "medium" | "low"
+    }
+  ]
   "confidence": "low" | "medium" | "high"
 }"""
 
