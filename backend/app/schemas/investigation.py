@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.investigation import CaseStatus, Investigation
 from app.models.tool_result import ToolResult
+from app.models.investigation_report import InvestigationReport
 
 
 class InvestigationRequest(BaseModel):
@@ -30,14 +31,15 @@ class InvestigationRequest(BaseModel):
 
 
 class InvestigationResponse(BaseModel):
-    """Returned immediately after an investigation is opened."""
+    """Returned after an investigation has been processed."""
 
     case_id: str
     status: CaseStatus
     problem_description: str
     created_at: datetime
     evidence: list[ToolResult] = Field(default_factory=list)
-    message: str = "Investigation started. Reasoning and reporting are not implemented yet."
+    report: InvestigationReport | None = None
+    message: str | None = None
 
     @classmethod
     def from_domain(cls, investigation: Investigation) -> "InvestigationResponse":
@@ -47,6 +49,7 @@ class InvestigationResponse(BaseModel):
             problem_description=investigation.problem_description,
             created_at=investigation.created_at,
             evidence=investigation.evidence,
+            report=investigation.report,
         )
 
 

@@ -1,4 +1,5 @@
 import type { CaseStatus, InvestigationResult } from '../../types';
+import { InvestigationReportCard } from './InvestigationReportCard';
 import { LabeledValue } from '../ui/LabeledValue';
 import { ToolResultCard } from './ToolResultCard';
 
@@ -52,6 +53,9 @@ export function InvestigationResults({ result }: InvestigationResultsProps) {
           ))}
         </div>
       )}
+      {result.report ? (
+        <InvestigationReportCard report={result.report} />
+      ) : null}
     </section>
   );
 }
