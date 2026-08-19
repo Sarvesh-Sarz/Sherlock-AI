@@ -38,6 +38,12 @@ from app.models.investigation_report import Confidence, Hypothesis, Investigatio
 from app.models.research_result import ResearchResult
 from app.models.tool_result import ToolResult, ToolStatus
 from app.reasoning.reasoner import NO_RESEARCH_NOTICE, Reasoner
+from app.models.investigation_report import (
+    Confidence,
+    Hypothesis,
+    InvestigationReport,
+    Recommendation,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -184,7 +190,9 @@ class OllamaReasoner(Reasoner):
         return content
 
 
-def _parse_report_body(raw_text: str) -> tuple[str, list[Hypothesis], list[str], Confidence]:
+def _parse_report_body(
+    raw_text: str,
+) -> tuple[str, list[Hypothesis], list[Recommendation], Confidence]:
     """Parse and validate the model's JSON text into report fields.
 
     Deliberately strict: a response that doesn't parse as JSON, isn't
@@ -214,7 +222,10 @@ def _parse_report_body(raw_text: str) -> tuple[str, list[Hypothesis], list[str],
     try:
         hypotheses = [Hypothesis(**item) for item in hypotheses_raw]
         summary = str(parsed["summary"])
-        recommendations = [str(item) for item in recommendations_raw]
+        recommendations = [
+            Recommendation(**item)
+            for item in recommendations_raw
+        ]
         confidence = Confidence(parsed["confidence"])
     except (KeyError, TypeError, ValueError, ValidationError) as exc:
         raise OllamaReasoningError(f"Ollama's response did not match the expected report shape: {exc}") from exc
