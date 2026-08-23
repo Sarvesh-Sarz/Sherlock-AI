@@ -20,7 +20,12 @@ from collections.abc import Iterable
 from datetime import datetime, timezone
 
 from app.models.investigation_plan import InvestigationPlan
-from app.models.investigation_report import Confidence, Hypothesis, InvestigationReport
+from app.models.investigation_report import (
+    Confidence,
+    Hypothesis,
+    InvestigationReport,
+    Recommendation,
+)
 from app.models.research_result import ResearchResult
 from app.models.tool_result import ToolResult
 from app.reasoning.reasoner import NO_RESEARCH_NOTICE, Reasoner
