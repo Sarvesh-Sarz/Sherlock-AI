@@ -106,6 +106,27 @@ or editing the registry.
     "high", "medium", "low".
 
     Never omit priority.
+    IMPORTANT:
+    Before responding, verify that your JSON contains ALL of these top-level keys:
+    "summary", "hypotheses", "recommendations", "confidence".
+
+    The "confidence" key is mandatory even when there are no hypotheses or recommendations.
+
+    If there are no hypotheses, use:
+    "hypotheses": []
+
+    If there are no recommendations, use:
+    "recommendations": []
+
+    Never omit "confidence".
+
+    The final JSON MUST have this exact top-level structure:
+    {
+    "summary": "...",
+    "hypotheses": [],
+    "recommendations": [],
+    "confidence": "low"
+    }
 }"""
 
 
