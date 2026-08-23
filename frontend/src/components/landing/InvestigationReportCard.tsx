@@ -112,11 +112,50 @@ export function InvestigationReportCard({
               Recommendations
             </h4>
 
-            <ul className="list-disc space-y-2 pl-5 text-sm leading-6 text-case-muted">
+            <div className="flex flex-col gap-3">
               {report.recommendations.map((recommendation, index) => (
-                <li key={index}>{recommendation}</li>
+                <div
+                  key={`${recommendation.title}-${index}`}
+                  className="rounded-md border border-case-border px-4 py-4"
+                >
+                  <div className="mb-2 flex items-center justify-between gap-4">
+                    <h5 className="text-sm font-medium text-case-text">
+                      {recommendation.title}
+                    </h5>
+
+                    <span className="font-mono text-xs uppercase text-case-faint">
+                      {recommendation.priority}
+                    </span>
+                  </div>
+
+                  <p className="mb-4 text-sm leading-6 text-case-muted">
+                    {recommendation.reason}
+                  </p>
+
+                  <div className="mb-4">
+                    <p className="mb-2 text-xs uppercase tracking-wide text-case-faint">
+                      What to do
+                    </p>
+
+                    <ol className="list-decimal space-y-2 pl-5 text-sm leading-6 text-case-muted">
+                      {recommendation.steps.map((step, stepIndex) => (
+                        <li key={stepIndex}>{step}</li>
+                      ))}
+                    </ol>
+                  </div>
+
+                  <div>
+                    <p className="mb-1 text-xs uppercase tracking-wide text-case-faint">
+                      Expected Result
+                    </p>
+
+                    <p className="text-sm text-case-muted">
+                      {recommendation.expected_result}
+                    </p>
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         ) : null}
 

@@ -89,16 +89,23 @@ or editing the registry.
   "recommendations": [
     {
         "title": "short action title",
-        "reason": "why this action is relevant to the evidence",
+        "reason": "why this action is relevant",
         "steps": [
         "specific step the user can perform",
         "another specific step"
         ],
-        "expected_result": "what improvement or observation the user should expect",
-        "priority": "high" | "medium" | "low"
+        "expected_result": "what the user should expect",
+        "priority": "high"
     }
-  ]
+    ]
   "confidence": "low" | "medium" | "high"
+    Every recommendation MUST contain all five fields:
+    title, reason, steps, expected_result, priority.
+
+    priority MUST be exactly one of:
+    "high", "medium", "low".
+
+    Never omit priority.
 }"""
 
 

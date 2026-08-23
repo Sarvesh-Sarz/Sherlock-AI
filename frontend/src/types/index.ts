@@ -20,6 +20,15 @@ export interface InvestigationCase {
   status: 'open' | 'resolved';
 }
 
+export type RecommendationPriority = 'high' | 'medium' | 'low';
+
+export interface Recommendation {
+  title: string;
+  reason: string;
+  steps: string[];
+  expected_result: string;
+  priority: RecommendationPriority;
+}
 /**
  * Mirrors `app.models.investigation.CaseStatus` on the backend. Kept as a
  * plain string union rather than a TS enum since that's all a JSON field
@@ -136,5 +145,37 @@ export interface InvestigationResult {
   problem_description: string;
   created_at: string;
   evidence: ToolResult[];
+  report?: InvestigationReport;
   message?: string;
+}
+
+
+export type Confidence = 'low' | 'medium' | 'high';
+
+export interface ResearchSource {
+  title: string;
+  url: string;
+  content?: string;
+}
+
+export interface Hypothesis {
+  title: string;
+  explanation: string;
+  supporting_evidence: string[];
+  contradicting_evidence: string[];
+  confidence: Confidence;
+}
+
+export interface InvestigationReport {
+  case_id: string;
+  problem_description: string;
+  summary: string;
+  hypotheses: Hypothesis[];
+  evidence_used: ToolResult[];
+  recommendations: Recommendation[];
+  confidence: Confidence;
+  research_sources: ResearchSource[];
+  research_notice?: string | null;
+  reasoning_method: string;
+  created_at: string;
 }
