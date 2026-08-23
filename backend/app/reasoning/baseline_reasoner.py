@@ -61,7 +61,7 @@ class BaselineReasoner(Reasoner):
             summary=_build_summary(problem_description, hypotheses),
             hypotheses=hypotheses,
             evidence_used=evidence,
-            recommendations=_deduplicate(signal.recommendation for signal in signals),
+            recommendations=_recommendations_from_signals(signals),
             confidence=_overall_confidence(hypotheses),
             research_sources=research,
             research_notice=None if research else NO_RESEARCH_NOTICE,
@@ -111,9 +111,24 @@ def _build_summary(problem_description: str, hypotheses: list[Hypothesis]) -> st
     )
 
 
-def _deduplicate(items: Iterable[str]) -> list[str]:
-    seen: list[str] = []
-    for item in items:
-        if item not in seen:
-            seen.append(item)
-    return seen
+def _recommendations_from_signals(signals: list[Signal]) -> list[Recommendation]:
+    recommendations: list[Recommendation] = []
+    seen: set[str] = set()
+
+    for signal in signals:
+        if signal.recommendation in seen:
+            continue
+
+        seen.add(signal.recommendation)
+
+        recommendations.append(
+            Recommendation(
+                title=signal.recommendation,
+                reason=signal.explanation,
+                steps=[signal.recommendation],
+                expected_result="This should help reduce or resolve the contributing factor.",
+                priority="medium",
+            )
+        )
+
+    return recommendations
