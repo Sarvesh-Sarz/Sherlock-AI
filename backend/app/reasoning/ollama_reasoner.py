@@ -183,13 +183,7 @@ class OllamaReasoner(Reasoner):
         )
 
     def _call_ollama(self, user_prompt: str) -> str:
-        """POST to Ollama's chat API and return the raw message content.
-
-        Raises `OllamaReasoningError` for any network failure, non-2xx
-        response, or response missing the text content entirely — never
-        for the *content* being malformed, which `_parse_report_body`
-        handles separately.
-        """
+        """POST to Ollama's chat API and return the raw message content."""
         try:
             response = httpx.post(
                 f"{self._base_url}/api/chat",
@@ -199,24 +193,117 @@ class OllamaReasoner(Reasoner):
                         {"role": "system", "content": _SYSTEM_PROMPT},
                         {"role": "user", "content": user_prompt},
                     ],
-                    "format": "json",
+                    "format": {
+                        "type": "object",
+                        "properties": {
+                            "summary": {
+                                "type": "string"
+                            },
+                            "hypotheses": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "title": {
+                                            "type": "string"
+                                        },
+                                        "explanation": {
+                                            "type": "string"
+                                        },
+                                        "supporting_evidence": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "contradicting_evidence": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "confidence": {
+                                            "type": "string",
+                                            "enum": ["low", "medium", "high"]
+                                        },
+                                    },
+                                    "required": [
+                                        "title",
+                                        "explanation",
+                                        "supporting_evidence",
+                                        "contradicting_evidence",
+                                        "confidence",
+                                    ],
+                                },
+                            },
+                            "recommendations": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "title": {
+                                            "type": "string"
+                                        },
+                                        "reason": {
+                                            "type": "string"
+                                        },
+                                        "steps": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "expected_result": {
+                                            "type": "string"
+                                        },
+                                        "priority": {
+                                            "type": "string",
+                                            "enum": ["high", "medium", "low"]
+                                        },
+                                    },
+                                    "required": [
+                                        "title",
+                                        "reason",
+                                        "steps",
+                                        "expected_result",
+                                        "priority",
+                                    ],
+                                },
+                            },
+                            "confidence": {
+                                "type": "string",
+                                "enum": ["low", "medium", "high"]
+                            },
+                        },
+                        "required": [
+                            "summary",
+                            "hypotheses",
+                            "recommendations",
+                            "confidence",
+                        ],
+                    },
                     "stream": False,
                 },
                 timeout=self._timeout_seconds,
             )
+
             response.raise_for_status()
             body = response.json()
+
         except (httpx.HTTPError, ValueError) as exc:
             raise OllamaReasoningError(
-                f"Could not reach Ollama at {self._base_url} (model={self._model}): {exc}"
+                f"Could not reach Ollama at {self._base_url} "
+                f"(model={self._model}): {exc}"
             ) from exc
 
         content = body.get("message", {}).get("content") if isinstance(body, dict) else None
+
         if not isinstance(content, str) or not content:
-            raise OllamaReasoningError("Ollama's response did not include message.content.")
+            raise OllamaReasoningError(
+                "Ollama's response did not include message.content."
+            )
 
         return content
-
 
 def _parse_report_body(
     raw_text: str,
