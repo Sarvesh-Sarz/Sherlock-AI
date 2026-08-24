@@ -103,8 +103,10 @@ or editing the registry.
         "title": "short action title",
         "reason": "why this action is relevant",
         "steps": [
-        "specific step the user can perform",
-        "another specific step"
+            "specific step the user can perform",
+            "next step based on the result",
+            "another troubleshooting step",
+            "final verification step"
         ],
         "expected_result": "what the user should expect",
         "priority": "high"
