@@ -69,7 +69,8 @@ or editing the registry.
 7. Each recommendation must contain concrete steps that a Windows user can perform manually.
 8. Prefer specific Windows UI paths when appropriate, such as:
    "Open Task Manager → Startup apps."
-   Do not invent menu names or settings that are unrelated to the evidence.
+   Only provide a UI path when it is supported by the research or
+   known Windows interface. Do not invent menu names.
 9. Every recommendation must be grounded in the evidence or research provided.
 10. Do not recommend an action merely because it is a common troubleshooting step if the evidence does not support it.
 11. Never instruct the user to delete system files, disable security software, modify the registry, or perform destructive actions.
@@ -80,10 +81,7 @@ or editing the registry.
 
 14. Include a verification step at the end so the user knows how to determine
    whether the problem was resolved.
-
-15. Do not stop after directing the user to a Windows settings page. Tell
-    the user what to look for and what to do there.
-16. Do not stop after directing the user to a Windows settings page or tool.
+15. Do not stop after directing the user to a Windows settings page or tool.
     After opening it, explicitly tell the user:
     - which section to open,
     - what device or setting to look for,
@@ -91,29 +89,30 @@ or editing the registry.
     - what to do if something is wrong,
     - and how to verify whether the change fixed the problem.
 
-17. Every recommendation must contain 3–6 concrete, numbered steps.
+16. Every recommendation must contain 3–6 concrete, numbered steps.
     The steps must form a complete troubleshooting path rather than
     simply listing several unrelated actions.
 
-18. When a step opens a Windows tool such as Device Manager, Task Manager,
+17. When a step opens a Windows tool such as Device Manager, Task Manager,
     Settings, Event Viewer, or Sound settings, explain the exact UI path
     and what the user should look for there.
 
-19. If the user is checking a device or driver:
-    - tell the user where the device should appear,
+18. If the recommendation involves checking a device or driver:
+    - tell the user exactly where the device should appear,
+    - tell them what a normal device entry looks like,
     - tell them what a warning/error indicator means,
-    - tell them what action to take if the device is present,
-    - tell them what action to take if the device is missing,
-    - and include a final test to verify the result.
+    - tell them exactly what to do if the device is present and has a problem,
+    - tell them exactly what to do if the device is missing,
+    - and finish with a concrete test to verify whether the original problem is resolved.
 
-20. Recommendations should become progressively more advanced.
+19. Recommendations should become progressively more advanced.
     Start with simple checks, then configuration checks, then driver/software
     checks, and only then suggest hardware-related actions.
 
-21. Never leave a step as a vague instruction such as:
+20. Never leave a step as a vague instruction such as:
     "Open Device Manager."
     Instead, explain what to do after opening it.
-22. Respond with ONLY one JSON object, no text before or after it, matching exactly:
+21. Respond with ONLY one JSON object, no text before or after it, matching exactly:
 {
   "summary": "one or two sentence overview of what was found",
   "hypotheses": [
