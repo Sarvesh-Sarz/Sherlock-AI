@@ -119,7 +119,8 @@ user can follow them without needing to search online.
         "reason": "why this action is relevant",
         "steps": [
             "specific step the user can perform",
-            "next step based on the result",
+            "the next troubleshooting step, including what to do if the previous
+            step does not resolve the issue",
             "another troubleshooting step",
             "final verification step"
         ],
