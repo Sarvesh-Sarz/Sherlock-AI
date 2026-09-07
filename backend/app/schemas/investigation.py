@@ -53,6 +53,7 @@ class InvestigationResponse(BaseModel):
             created_at=investigation.created_at,
             evidence=investigation.evidence,
             report=investigation.report,
+            troubleshooting_session: TroubleshootingSession | None = None
         )
 
 
@@ -79,4 +80,5 @@ class InvestigationStatus(BaseModel):
             evidence=investigation.evidence,
             findings=investigation.findings,
             report=investigation.report,
+            troubleshooting_session=investigation.troubleshooting_session,
         )
