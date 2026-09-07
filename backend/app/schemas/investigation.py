@@ -63,7 +63,7 @@ class InvestigationStatus(BaseModel):
     updated_at: datetime
     evidence: list[ToolResult] = Field(default_factory=list)
     findings: list[str] = Field(default_factory=list)
-    report: str | None = None
+    report: InvestigationReport | None = None
 
     @classmethod
     def from_domain(cls, investigation: Investigation) -> "InvestigationStatus":
