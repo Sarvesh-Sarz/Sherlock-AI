@@ -95,3 +95,4 @@ class Investigation:
         """Attach or replace the investigation's troubleshooting session."""
 
         self.troubleshooting_session = session
+        self.updated_at = datetime.now(timezone.utc)
