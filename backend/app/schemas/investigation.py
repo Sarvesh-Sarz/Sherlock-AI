@@ -53,7 +53,7 @@ class InvestigationResponse(BaseModel):
             created_at=investigation.created_at,
             evidence=investigation.evidence,
             report=investigation.report,
-            troubleshooting_session: TroubleshootingSession | None = None
+            troubleshooting_session=investigation.troubleshooting_session,
         )
 
 
@@ -68,6 +68,7 @@ class InvestigationStatus(BaseModel):
     evidence: list[ToolResult] = Field(default_factory=list)
     findings: list[str] = Field(default_factory=list)
     report: InvestigationReport | None = None
+    troubleshooting_session: TroubleshootingSession | None = None
 
     @classmethod
     def from_domain(cls, investigation: Investigation) -> "InvestigationStatus":
