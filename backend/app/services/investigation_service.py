@@ -149,6 +149,74 @@ class InvestigationService:
 
         return session
 
+    def answer_troubleshooting_step(
+        self,
+        case_id: str,
+        result: StepResult,
+    ) -> TroubleshootingSession:
+        """Record the user's answer to the current troubleshooting step."""
+
+        investigation = self._repository.get(case_id)
+
+        if investigation is None:
+            raise ValueError(f"Investigation {case_id} was not found.")
+
+        if investigation.report is None:
+            raise ValueError(
+                "Cannot answer troubleshooting steps because this investigation has no report."
+            )
+
+        session = investigation.troubleshooting_session
+
+        if session is None:
+            raise ValueError(
+                "No troubleshooting session has been started for this investigation."
+            )
+
+        if session.status is not SessionStatus.IN_PROGRESS:
+            raise ValueError(
+                f"Troubleshooting session is already {session.status.value}."
+            )
+
+        recommendations = investigation.report.recommendations
+
+        recommendation_index = session.current_recommendation_index
+
+        if (
+            recommendation_index < 0
+            or recommendation_index >= len(recommendations)
+        ):
+            raise ValueError(
+                f"Recommendation index {recommendation_index} is out of range."
+            )
+
+        recommendation = recommendations[recommendation_index]
+
+        if not recommendation.steps:
+            raise ValueError(
+                "The current recommendation has no troubleshooting steps."
+            )
+
+        is_final_step = (
+            session.current_step_index == len(recommendation.steps) - 1
+        )
+
+        has_next_recommendation = (
+            recommendation_index < len(recommendations) - 1
+        )
+
+        session.record_step_answer(
+            result,
+            is_final_step=is_final_step,
+            has_next_recommendation=has_next_recommendation,
+        )
+
+        investigation.set_troubleshooting_session(session)
+
+        self._repository.update(investigation)
+
+        return session
+
     def _collect_evidence(self, investigation: Investigation, plan: InvestigationPlan) -> None:
         """Attach whatever the Tool Manager reports for this plan.
 
