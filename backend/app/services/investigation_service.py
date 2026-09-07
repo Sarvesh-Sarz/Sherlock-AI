@@ -104,6 +104,51 @@ class InvestigationService:
         """Look up an investigation by ID. Returns None if it doesn't exist."""
         return self._repository.get(case_id)
 
+    def start_troubleshooting(
+        self,
+        case_id: str,
+        recommendation_index: int,
+    ) -> TroubleshootingSession:
+        """Start a guided troubleshooting session for one recommendation."""
+
+        investigation = self._repository.get(case_id)
+
+        if investigation is None:
+            raise ValueError(f"Investigation {case_id} was not found.")
+
+        if investigation.report is None:
+            raise ValueError(
+                "Cannot start troubleshooting because this investigation has no report."
+            )
+
+        recommendations = investigation.report.recommendations
+
+        if (
+            recommendation_index < 0
+            or recommendation_index >= len(recommendations)
+        ):
+            raise ValueError(
+                f"Recommendation index {recommendation_index} is out of range."
+            )
+
+        recommendation = recommendations[recommendation_index]
+
+        if not recommendation.steps:
+            raise ValueError(
+                "Cannot start troubleshooting for a recommendation with no steps."
+            )
+
+        session = TroubleshootingSession.start(
+            case_id=case_id,
+            recommendation_index=recommendation_index,
+        )
+
+        investigation.set_troubleshooting_session(session)
+
+        self._repository.update(investigation)
+
+        return session
+
     def _collect_evidence(self, investigation: Investigation, plan: InvestigationPlan) -> None:
         """Attach whatever the Tool Manager reports for this plan.
 
