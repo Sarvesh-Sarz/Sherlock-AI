@@ -41,6 +41,7 @@ class InvestigationResponse(BaseModel):
     created_at: datetime
     evidence: list[ToolResult] = Field(default_factory=list)
     report: InvestigationReport | None = None
+    troubleshooting_session: TroubleshootingSession | None = None
     message: str | None = None
 
     @classmethod
