@@ -87,3 +87,11 @@ class Investigation:
 
     def set_report(self, report: InvestigationReport) -> None:
         self.report = report
+
+    def set_troubleshooting_session(
+        self,
+        session: TroubleshootingSession,
+    ) -> None:
+        """Attach or replace the investigation's troubleshooting session."""
+
+        self.troubleshooting_session = session
