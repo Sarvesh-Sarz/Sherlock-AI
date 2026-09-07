@@ -33,6 +33,12 @@ from app.research.researcher import Researcher, UnconfiguredResearcher
 from app.schemas.investigation import InvestigationRequest
 from app.tools.tool_manager import ToolManager
 
+from app.models.troubleshooting_session import (
+    SessionStatus,
+    StepResult,
+    TroubleshootingSession,
+)
+
 logger = logging.getLogger(__name__)
 
 
