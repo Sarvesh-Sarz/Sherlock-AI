@@ -11,6 +11,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.models.troubleshooting_session import TroubleshootingSession
+
 from app.models.investigation import CaseStatus, Investigation
 from app.models.tool_result import ToolResult
 from app.models.investigation_report import InvestigationReport
