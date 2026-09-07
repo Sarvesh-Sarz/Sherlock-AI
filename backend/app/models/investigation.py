@@ -51,6 +51,7 @@ class Investigation:
     evidence: list[ToolResult] = field(default_factory=list)
     findings: list[str] = field(default_factory=list)
     report: InvestigationReport | None = None
+    troubleshooting_session: TroubleshootingSession | None = None
 
     @classmethod
     def new(cls, problem_description: str) -> "Investigation":
