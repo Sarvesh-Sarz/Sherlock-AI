@@ -12,6 +12,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from uuid import uuid4
 
+from app.models.troubleshooting_session import TroubleshootingSession
+
 from app.models.investigation_plan import InvestigationPlan
 from app.models.investigation_report import InvestigationReport
 from app.models.tool_result import ToolResult
