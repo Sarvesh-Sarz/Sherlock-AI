@@ -5,11 +5,23 @@ means adding one `include_router` line here, not touching `main.py`.
 
 from fastapi import APIRouter
 
-from app.api.endpoints import health, investigation
+from app.api.endpoints import health, investigation, troubleshooting
 
 api_router = APIRouter()
 
-api_router.include_router(health.router, tags=["health"])
 api_router.include_router(
-    investigation.router, prefix="/investigation", tags=["investigation"]
+    health.router,
+    tags=["health"],
+)
+
+api_router.include_router(
+    investigation.router,
+    prefix="/investigation",
+    tags=["investigation"],
+)
+
+api_router.include_router(
+    troubleshooting.router,
+    prefix="/investigation",
+    tags=["troubleshooting"],
 )
