@@ -179,3 +179,44 @@ export interface InvestigationReport {
   reasoning_method: string;
   created_at: string;
 }
+
+/**
+ * Mirrors `app.models.troubleshooting_session.SessionStatus`.
+ */
+export type TroubleshootingStatus =
+  | 'in_progress'
+  | 'resolved'
+  | 'abandoned';
+
+/**
+ * Mirrors `app.models.troubleshooting_session.StepResult`.
+ *
+ * These are the possible answers the user can give after attempting
+ * a troubleshooting step.
+ */
+export type StepResult =
+  | 'done'
+  | 'could_not_complete';
+
+/**
+ * A single answer recorded during a troubleshooting session.
+ */
+export interface TroubleshootingAnswer {
+  recommendation_index: number;
+  step_index: number;
+  result: StepResult;
+  answered_at: string;
+}
+
+/**
+ * Mirrors `app.models.troubleshooting_session.TroubleshootingSession`.
+ */
+export interface TroubleshootingSession {
+  case_id: string;
+  status: TroubleshootingStatus;
+  current_recommendation_index: number;
+  current_step_index: number;
+  answers: TroubleshootingAnswer[];
+  started_at: string;
+  updated_at: string;
+}

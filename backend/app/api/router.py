@@ -19,7 +19,7 @@ api_router.include_router(
     prefix="/investigation",
     tags=["investigation"],
 )
-
+    
 api_router.include_router(
     troubleshooting.router,
     prefix="/investigation",
