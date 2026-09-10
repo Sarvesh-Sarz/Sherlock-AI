@@ -1,4 +1,8 @@
-import type { InvestigationResult } from '../types';
+import type {
+  InvestigationResult,
+  StepResult,
+  TroubleshootingSession,
+} from '../types';
 
 // Overridable via a `.env` file (`VITE_API_BASE_URL=...`) for anyone
 // running the backend somewhere other than the default. Falls back to
