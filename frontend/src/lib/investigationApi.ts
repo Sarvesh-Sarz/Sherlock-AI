@@ -54,6 +54,121 @@ export async function startInvestigation(problemDescription: string): Promise<In
 }
 
 /**
+ * POST /investigation/{case_id}/troubleshooting/start
+ *
+ * Start a guided troubleshooting session for one recommendation.
+ */
+export async function startTroubleshooting(
+  caseId: string,
+  recommendationIndex: number,
+): Promise<TroubleshootingSession> {
+  let response: Response;
+
+  try {
+    response = await fetch(
+      `${API_BASE_URL}/investigation/${caseId}/troubleshooting/start`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recommendation_index: recommendationIndex,
+        }),
+      },
+    );
+  } catch {
+    throw new InvestigationApiError(
+      `Couldn't reach Sherlock's backend at ${API_BASE_URL}. Make sure it's running and try again.`,
+    );
+  }
+
+  if (!response.ok) {
+    throw new InvestigationApiError(await describeErrorResponse(response));
+  }
+
+  try {
+    return (await response.json()) as TroubleshootingSession;
+  } catch {
+    throw new InvestigationApiError(
+      'The backend returned a troubleshooting session Sherlock could not understand.',
+    );
+  }
+}
+
+
+/**
+ * POST /investigation/{case_id}/troubleshooting/answer
+ *
+ * Submit the user's result for the current troubleshooting step.
+ */
+export async function answerTroubleshootingStep(
+  caseId: string,
+  result: StepResult,
+): Promise<TroubleshootingSession> {
+  let response: Response;
+
+  try {
+    response = await fetch(
+      `${API_BASE_URL}/investigation/${caseId}/troubleshooting/answer`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ result }),
+      },
+    );
+  } catch {
+    throw new InvestigationApiError(
+      `Couldn't reach Sherlock's backend at ${API_BASE_URL}. Make sure it's running and try again.`,
+    );
+  }
+
+  if (!response.ok) {
+    throw new InvestigationApiError(await describeErrorResponse(response));
+  }
+
+  try {
+    return (await response.json()) as TroubleshootingSession;
+  } catch {
+    throw new InvestigationApiError(
+      'The backend returned a troubleshooting response Sherlock could not understand.',
+    );
+  }
+}
+
+
+/**
+ * GET /investigation/{case_id}/troubleshooting
+ *
+ * Get the current troubleshooting session.
+ */
+export async function getTroubleshooting(
+  caseId: string,
+): Promise<TroubleshootingSession> {
+  let response: Response;
+
+  try {
+    response = await fetch(
+      `${API_BASE_URL}/investigation/${caseId}/troubleshooting`,
+    );
+  } catch {
+    throw new InvestigationApiError(
+      `Couldn't reach Sherlock's backend at ${API_BASE_URL}. Make sure it's running and try again.`,
+    );
+  }
+
+  if (!response.ok) {
+    throw new InvestigationApiError(await describeErrorResponse(response));
+  }
+
+  try {
+    return (await response.json()) as TroubleshootingSession;
+  } catch {
+    throw new InvestigationApiError(
+      'The backend returned a troubleshooting session Sherlock could not understand.',
+    );
+  }
+}
+
+/**
  * Turn a non-2xx response into one readable sentence. FastAPI's error
  * body shape differs by failure type — a 404 sends `detail` as a plain
  * string, a 422 validation error sends `detail` as a list of per-field
