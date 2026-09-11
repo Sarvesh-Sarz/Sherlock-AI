@@ -220,3 +220,27 @@ export interface TroubleshootingSession {
   started_at: string;
   updated_at: string;
 }
+
+export type SessionStatus =
+  | 'in_progress'
+  | 'resolved'
+  | 'could_not_complete';
+
+export type StepResult = 'done' | 'could_not_complete';
+
+export interface TroubleshootingAnswer {
+  recommendation_index: number;
+  step_index: number;
+  result: StepResult;
+  answered_at: string;
+}
+
+export interface TroubleshootingSession {
+  case_id: string;
+  status: SessionStatus;
+  current_recommendation_index: number;
+  current_step_index: number;
+  answers: TroubleshootingAnswer[];
+  started_at: string;
+  updated_at: string;
+}
