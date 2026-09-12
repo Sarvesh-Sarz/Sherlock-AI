@@ -154,6 +154,11 @@ export function InvestigationReportCard({
                       {recommendation.expected_result}
                     </p>
                   </div>
+                  <TroubleshootingSession
+                    caseId={report.case_id}
+                    recommendations={report.recommendations}
+                    recommendationIndex={index}
+                  />
                 </div>
               ))}
             </div>
