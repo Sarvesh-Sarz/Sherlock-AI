@@ -1,5 +1,6 @@
 import type { InvestigationReport } from '../../types';
 import { LabeledValue } from '../ui/LabeledValue';
+import { TroubleshootingSession } from '../investigation/TroubleshootingSession';
 
 interface InvestigationReportCardProps {
   report: InvestigationReport;
