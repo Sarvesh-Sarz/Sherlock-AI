@@ -10,6 +10,8 @@ interface InvestigationReportCardProps {
 export function InvestigationReportCard({
   report,
 }: InvestigationReportCardProps) {
+    const [selectedRecommendation, setSelectedRecommendation] =
+      useState<number | null>(null);
   return (
     <section className="mt-8">
       <h3 className="mb-3 font-mono text-xs uppercase tracking-widest2 text-case-faint">
