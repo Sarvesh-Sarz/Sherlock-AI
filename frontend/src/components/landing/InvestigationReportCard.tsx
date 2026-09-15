@@ -168,6 +168,14 @@ export function InvestigationReportCard({
           </div>
         ) : null}
 
+        {selectedRecommendation !== null ? (
+          <TroubleshootingSession
+            caseId={report.case_id}
+            recommendations={report.recommendations}
+            recommendationIndex={selectedRecommendation}
+          />
+        ) : null}
+
         {/* Research */}
         {report.research_sources.length > 0 ? (
           <div>
