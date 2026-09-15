@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import type { InvestigationReport } from '../../types';
 import { LabeledValue } from '../ui/LabeledValue';
 import { TroubleshootingSession } from '../investigation/TroubleshootingSession';
-import { useState } from 'react';
+
 
 interface InvestigationReportCardProps {
   report: InvestigationReport;
