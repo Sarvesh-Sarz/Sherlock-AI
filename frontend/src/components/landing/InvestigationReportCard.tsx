@@ -168,6 +168,9 @@ export function InvestigationReportCard({
           </div>
         ) : null}
 
+        {selectedRecommendation !== null ? (
+        ) : null}
+
         {/* Research */}
         {report.research_sources.length > 0 ? (
           <div>
