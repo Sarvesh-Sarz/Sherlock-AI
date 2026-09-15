@@ -106,7 +106,7 @@
       );
     }
 
-    if (session.status === 'could_not_complete') {
+    if (session.status === 'exhausted') {
       return (
         <div className="mt-5 border-t border-case-border pt-4">
           <p className="text-sm font-medium text-case-muted">
