@@ -158,20 +158,29 @@ export function InvestigationReportCard({
                       {recommendation.expected_result}
                     </p>
                   </div>
-                  <TroubleshootingSession
-                    caseId={report.case_id}
-                    recommendations={report.recommendations}
-                    recommendationIndex={index}
-                  />
+
+                  {/* Troubleshooting button */}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRecommendation(index)}
+                    className="mt-5 rounded-md border border-case-brass px-4 py-2 text-sm font-medium text-case-brass transition hover:bg-case-brass hover:text-case-surface"
+                  >
+                    Troubleshoot This Recommendation
+                  </button>
                 </div>
               ))}
             </div>
           </div>
         ) : null}
 
+        {/* One guided troubleshooting session */}
         {selectedRecommendation !== null ? (
+          <TroubleshootingSession
+            caseId={report.case_id}
+            recommendations={report.recommendations}
+            recommendationIndex={selectedRecommendation}
+          />
         ) : null}
-
         {/* Research */}
         {report.research_sources.length > 0 ? (
           <div>
