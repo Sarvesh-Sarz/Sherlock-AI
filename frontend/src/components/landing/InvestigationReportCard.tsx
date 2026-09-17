@@ -163,7 +163,7 @@ export function InvestigationReportCard({
                   <button
                     type="button"
                     onClick={() => setSelectedRecommendation(index)}
-                    className="mt-5 rounded-md border border-case-brass px-4 py-2 text-sm font-medium text-case-brass transition hover:bg-case-brass hover:text-case-surface"
+                    className="relative z-50 mt-5 rounded-md border border-case-brass px-4 py-2 text-sm font-medium text-case-brass transition hover:bg-case-brass hover:text-case-surface"
                   >
                     Troubleshoot This Recommendation
                   </button>
