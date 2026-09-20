@@ -400,10 +400,23 @@ def _parse_report_body(
     try:
         hypotheses = [Hypothesis(**item) for item in hypotheses_raw]
         summary = str(parsed["summary"])
-        recommendations = [
-            Recommendation(**item)
-            for item in recommendations_raw
-        ]
+        recommendations = []
+
+        for item in recommendations_raw:
+            recommendation = Recommendation(**item)
+
+            if not recommendation.steps:
+                raise OllamaReasoningError(
+                    f"Recommendation '{recommendation.title}' has no troubleshooting steps."
+                )
+
+            if not 3 <= len(recommendation.steps) <= 6:
+                raise OllamaReasoningError(
+                    f"Recommendation '{recommendation.title}' must contain "
+                    f"3–6 troubleshooting steps, got {len(recommendation.steps)}."
+                )
+
+            recommendations.append(recommendation)
         confidence = Confidence(parsed["confidence"])
     except (KeyError, TypeError, ValueError, ValidationError) as exc:
         raise OllamaReasoningError(f"Ollama's response did not match the expected report shape: {exc}") from exc
