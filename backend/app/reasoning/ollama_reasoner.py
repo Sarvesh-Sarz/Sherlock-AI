@@ -306,6 +306,8 @@ class OllamaReasoner(Reasoner):
                                         },
                                         "steps": {
                                             "type": "array",
+                                            "minItems": 3,
+                                            "maxItems": 6,
                                             "items": {
                                                 "type": "string"
                                             }
