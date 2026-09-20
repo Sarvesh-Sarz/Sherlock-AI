@@ -108,7 +108,11 @@ or editing the registry.
 18. Every recommendation must contain 3–6 concrete, numbered steps.
     The steps must form a complete troubleshooting path rather than
     simply listing several unrelated actions.
-
+18a. NEVER return a recommendation with an empty "steps" array.
+    NEVER return fewer than 3 steps.
+    If the available evidence or research does not support a complete
+    3–6 step troubleshooting path, DO NOT include that recommendation
+    in the recommendations array.
 19. When a step opens a Windows tool such as Device Manager, Task Manager,
     Settings, Event Viewer, or Sound settings, explain the exact UI path
     and what the user should look for there.
