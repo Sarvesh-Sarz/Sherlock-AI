@@ -129,6 +129,12 @@ or editing the registry.
     Start with simple checks, then configuration checks, then driver/software
     checks, and only then suggest hardware-related actions.
 
+21a. Do not create a recommendation whose only purpose is to suggest
+     replacing or upgrading hardware. Hardware-related recommendations
+     are allowed only when the evidence provides a concrete reason to
+     investigate hardware, and they must still contain 3–6 actionable
+     diagnostic steps before any replacement decision.
+
 22. Never leave a step as a vague instruction such as:
     "Open Device Manager."
     Instead, explain what to do after opening it.
