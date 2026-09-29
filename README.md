@@ -161,3 +161,127 @@ Medium
 ```
 
 ---
+
+
+## 4. Local AI Reasoning
+
+Sherlock can use local Ollama models for reasoning.
+
+Current development configuration:
+
+```text
+Ollama
+└── qwen2.5:1.5b
+```
+
+The reasoning layer uses structured JSON output. A deterministic baseline reasoner is also available as a fallback.
+
+---
+
+## 5. Web Research
+
+When additional information is useful, Sherlock generates investigation-specific research queries.
+
+Research supplements system evidence and can provide:
+
+- Relevant documentation
+- Windows troubleshooting information
+- Known causes
+- Configuration guidance
+- Supporting technical references
+
+Research sources are displayed in the final report.
+
+---
+
+## 6. Structured Investigation Reports
+
+Each investigation produces:
+
+- Case ID
+- Problem description
+- Summary
+- Confidence
+- Reasoning method
+- Hypotheses
+- Supporting evidence
+- Contradicting evidence
+- Recommendations
+- Research sources
+- Investigation timestamp
+
+Example:
+
+```text
+INVESTIGATION REPORT
+
+Problem
+└── Laptop is running slowly
+
+Confidence
+└── High
+
+Hypotheses
+├── Background applications
+├── Startup applications
+└── Resource-intensive applications
+
+Recommendations
+├── Investigate startup applications
+├── Identify resource-intensive processes
+└── Perform additional system checks
+```
+
+---
+
+## 7. Guided Troubleshooting
+
+Each recommendation can become an interactive troubleshooting session.
+
+```text
+Recommendation
+      ↓
+Start Guided Troubleshooting
+      ↓
+Step 1 of N
+      ↓
+Done / Couldn't Complete
+      ↓
+Step 2 of N
+      ↓
+...
+      ↓
+Resolved / Exhausted
+```
+
+A session records:
+
+- Current recommendation
+- Current step
+- Completed answers
+- Step result
+- Session status
+- Start time
+- Last update
+
+---
+
+## 8. Persistent Troubleshooting State
+
+Guided troubleshooting sessions are stored as part of the investigation.
+
+Example:
+
+```text
+Recommendation: 1
+Step: 3
+Status: in_progress
+```
+
+The session can be retrieved with:
+
+```http
+GET /investigation/{case_id}/troubleshooting
+```
+
+---
