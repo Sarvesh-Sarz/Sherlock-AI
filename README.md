@@ -79,3 +79,85 @@ Sherlock does not blindly modify the user's system.
 Recommendations are presented as manual actions so the user remains in control.
 
 ---
+
+# Core Features
+
+## 1. Agentic Investigation
+
+Sherlock separates the investigation into multiple stages rather than generating one large AI response.
+
+```text
+Planner
+   ↓
+Tool Manager
+   ↓
+Evidence Collector
+   ↓
+Researcher
+   ↓
+Reasoner
+   ↓
+Report Generator
+```
+
+---
+
+## 2. System Evidence Collection
+
+Current diagnostic areas include:
+
+- CPU
+- Memory
+- Disk
+- Startup applications
+
+Planned areas include:
+
+- Wi-Fi
+- Battery
+- Storage
+- Temperature / overheating
+- Device and driver information
+
+Evidence is stored as structured tool results.
+
+Example:
+
+```json
+{
+  "tool_name": "cpu",
+  "status": "success",
+  "payload": {
+    "usage_percent": 78.4
+  }
+}
+```
+
+---
+
+## 3. Evidence-Based Reasoning
+
+Sherlock produces hypotheses with:
+
+- Explanation
+- Supporting evidence
+- Contradicting evidence
+- Confidence
+
+Example:
+
+```text
+Hypothesis:
+High background resource usage
+
+Supporting Evidence:
+CPU utilization is elevated.
+
+Contradicting Evidence:
+No significant memory pressure was observed.
+
+Confidence:
+Medium
+```
+
+---
