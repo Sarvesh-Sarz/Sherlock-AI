@@ -162,8 +162,11 @@ export function InvestigationReportCard({
                   {/* Troubleshooting button */}
                   <button
                     type="button"
-                    onClick={() => setSelectedRecommendation(index)}
-                    className="relative z-50 mt-5 rounded-md border border-case-brass px-4 py-2 text-sm font-medium text-case-brass transition hover:bg-case-brass hover:text-case-surface"
+                    onClick={() => {
+                      console.log('Troubleshoot clicked:', index);
+                      setSelectedRecommendation(index);
+                    }}
+                    className="relative z-[9999] mt-5 cursor-pointer rounded-md border border-case-brass px-4 py-2 text-sm font-medium text-case-brass transition hover:bg-case-brass hover:text-case-surface"
                   >
                     Troubleshoot This Recommendation
                   </button>
