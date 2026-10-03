@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type {
   Recommendation,
   TroubleshootingSession as TroubleshootingSessionType,
@@ -23,38 +23,46 @@ export function TroubleshootingSession({
   const [session, setSession] =
     useState<TroubleshootingSessionType | null>(null);
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const currentRecommendationIndex =
-    session?.current_recommendation_index ?? recommendationIndex;
+  useEffect(() => {
+    let cancelled = false;
 
-  const currentStepIndex = session?.current_step_index ?? 0;
+    async function start() {
+      setLoading(true);
+      setError(null);
 
-  const recommendation =
-    recommendations[currentRecommendationIndex];
+      try {
+        const startedSession = await startTroubleshooting(
+          caseId,
+          recommendationIndex,
+        );
 
-  async function handleStart() {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const startedSession = await startTroubleshooting(
-        caseId,
-        recommendationIndex,
-      );
-
-      setSession(startedSession);
-    } catch (err) {
-      setError(
-        err instanceof InvestigationApiError
-          ? err.message
-          : 'Something went wrong while starting troubleshooting.',
-      );
-    } finally {
-      setLoading(false);
+        if (!cancelled) {
+          setSession(startedSession);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof InvestigationApiError
+              ? err.message
+              : 'Something went wrong while starting troubleshooting.',
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
     }
-  }
+
+    start();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [caseId, recommendationIndex]);
 
   async function handleAnswer(
     result: 'done' | 'could_not_complete',
@@ -80,36 +88,33 @@ export function TroubleshootingSession({
     }
   }
 
-  /*
-   * No troubleshooting session has started yet.
-   */
-  if (!session) {
+  if (loading && !session) {
     return (
-      <div className="mt-5 border-t border-case-border pt-4">
-        <button
-          type="button"
-          onClick={handleStart}
-          disabled={loading}
-          className="rounded-md border border-case-brass px-4 py-2 text-sm font-medium text-case-brass transition hover:bg-case-brass hover:text-case-surface disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {loading ? 'Starting...' : 'Start Guided Troubleshooting'}
-        </button>
-
-        {error ? (
-          <p className="mt-3 text-sm text-red-400">
-            {error}
-          </p>
-        ) : null}
+      <div className="mt-5 border-t border-case-border pt-5">
+        <p className="text-sm text-case-muted">
+          Starting guided troubleshooting...
+        </p>
       </div>
     );
   }
 
-  /*
-   * Troubleshooting successfully completed.
-   */
+  if (error && !session) {
+    return (
+      <div className="mt-5 border-t border-case-border pt-5">
+        <p className="text-sm text-red-400">
+          {error}
+        </p>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return null;
+  }
+
   if (session.status === 'resolved') {
     return (
-      <div className="mt-5 border-t border-case-border pt-4">
+      <div className="mt-5 border-t border-case-border pt-5">
         <p className="text-sm font-medium text-case-brass">
           Troubleshooting completed successfully.
         </p>
@@ -117,47 +122,42 @@ export function TroubleshootingSession({
     );
   }
 
-  /*
-   * All available recommendations have been exhausted.
-   */
   if (session.status === 'exhausted') {
     return (
-      <div className="mt-5 border-t border-case-border pt-4">
+      <div className="mt-5 border-t border-case-border pt-5">
         <p className="text-sm font-medium text-case-muted">
-          Sherlock reached the end of the available troubleshooting paths.
+          This troubleshooting path could not be completed.
         </p>
       </div>
     );
   }
 
-  /*
-   * Safety checks in case the backend returns an invalid index.
-   */
+  const recommendation =
+    recommendations[session.current_recommendation_index];
+
   if (!recommendation) {
     return (
-      <div className="mt-5 border-t border-case-border pt-4">
+      <div className="mt-5 border-t border-case-border pt-5">
         <p className="text-sm text-red-400">
-          Sherlock couldn't find the current troubleshooting recommendation.
+          Sherlock could not find the current recommendation.
         </p>
       </div>
     );
   }
 
+  const currentStepIndex = session.current_step_index;
   const currentStep = recommendation.steps[currentStepIndex];
 
   if (!currentStep) {
     return (
-      <div className="mt-5 border-t border-case-border pt-4">
+      <div className="mt-5 border-t border-case-border pt-5">
         <p className="text-sm text-red-400">
-          Sherlock couldn't find the current troubleshooting step.
+          Sherlock could not find the current troubleshooting step.
         </p>
       </div>
     );
   }
 
-  /*
-   * Active troubleshooting step.
-   */
   return (
     <div className="mt-5 border-t border-case-border pt-5">
       <div className="mb-4">
