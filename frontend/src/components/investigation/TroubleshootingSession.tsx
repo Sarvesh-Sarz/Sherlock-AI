@@ -3,9 +3,11 @@ import type {
   Recommendation,
   TroubleshootingSession as TroubleshootingSessionType,
 } from '../../types';
+
 import {
   answerTroubleshootingStep,
   startTroubleshooting,
+  getTroubleshooting,
   InvestigationApiError,
 } from '../../lib/investigationApi';
 
@@ -26,30 +28,42 @@ export function TroubleshootingSession({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+
   useEffect(() => {
     let cancelled = false;
 
-    async function start() {
+    async function loadExistingSession() {
       setLoading(true);
       setError(null);
 
       try {
-        const startedSession = await startTroubleshooting(
-          caseId,
-          recommendationIndex,
-        );
+        const existingSession = await getTroubleshooting(caseId);
 
         if (!cancelled) {
-          setSession(startedSession);
+          setSession(existingSession);
         }
       } catch (err) {
-        if (!cancelled) {
-          setError(
-            err instanceof InvestigationApiError
-              ? err.message
-              : 'Something went wrong while starting troubleshooting.',
-          );
+        if (cancelled) {
+          return;
         }
+
+        /*
+         * 404 means there is no existing troubleshooting session.
+         * That's normal — we simply show the Start button.
+         */
+        if (
+          err instanceof InvestigationApiError &&
+          err.message.toLowerCase().includes('no troubleshooting session')
+        ) {
+          setSession(null);
+          return;
+        }
+
+        setError(
+          err instanceof InvestigationApiError
+            ? err.message
+            : 'Something went wrong while loading troubleshooting.',
+        );
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -57,13 +71,42 @@ export function TroubleshootingSession({
       }
     }
 
-    start();
+    loadExistingSession();
 
     return () => {
       cancelled = true;
     };
-  }, [caseId, recommendationIndex]);
+  }, [caseId]);
 
+  /*
+   * Start a new troubleshooting session only when
+   * the user explicitly clicks the Start button.
+   */
+  async function handleStart() {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const startedSession = await startTroubleshooting(
+        caseId,
+        recommendationIndex,
+      );
+
+      setSession(startedSession);
+    } catch (err) {
+      setError(
+        err instanceof InvestigationApiError
+          ? err.message
+          : 'Something went wrong while starting troubleshooting.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /*
+   * Record Done / Couldn't Complete.
+   */
   async function handleAnswer(
     result: 'done' | 'could_not_complete',
   ) {
@@ -88,30 +131,50 @@ export function TroubleshootingSession({
     }
   }
 
+  /*
+   * Loading existing session.
+   */
   if (loading && !session) {
     return (
       <div className="mt-5 border-t border-case-border pt-5">
         <p className="text-sm text-case-muted">
-          Starting guided troubleshooting...
+          Checking troubleshooting session...
         </p>
       </div>
     );
   }
 
-  if (error && !session) {
+  /*
+   * No existing session.
+   *
+   * This is where the Start Guided Troubleshooting button appears.
+   */
+  if (!session) {
     return (
       <div className="mt-5 border-t border-case-border pt-5">
-        <p className="text-sm text-red-400">
-          {error}
-        </p>
+        <button
+          type="button"
+          onClick={handleStart}
+          disabled={loading}
+          className="rounded-md border border-case-brass px-4 py-2 text-sm font-medium text-case-brass transition hover:bg-case-brass hover:text-case-surface disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {loading
+            ? 'Starting...'
+            : 'Start Guided Troubleshooting'}
+        </button>
+
+        {error ? (
+          <p className="mt-3 text-sm text-red-400">
+            {error}
+          </p>
+        ) : null}
       </div>
     );
   }
 
-  if (!session) {
-    return null;
-  }
-
+  /*
+   * Troubleshooting completed successfully.
+   */
   if (session.status === 'resolved') {
     return (
       <div className="mt-5 border-t border-case-border pt-5">
@@ -122,16 +185,23 @@ export function TroubleshootingSession({
     );
   }
 
+  /*
+   * All recommendations were exhausted.
+   */
   if (session.status === 'exhausted') {
     return (
       <div className="mt-5 border-t border-case-border pt-5">
         <p className="text-sm font-medium text-case-muted">
-          This troubleshooting path could not be completed.
+          Sherlock could not resolve the issue through the available troubleshooting paths.
         </p>
       </div>
     );
   }
 
+  /*
+   * Find the recommendation and step currently tracked
+   * by the backend session.
+   */
   const recommendation =
     recommendations[session.current_recommendation_index];
 
@@ -158,6 +228,9 @@ export function TroubleshootingSession({
     );
   }
 
+  /*
+   * Active troubleshooting step.
+   */
   return (
     <div className="mt-5 border-t border-case-border pt-5">
       <div className="mb-4">
