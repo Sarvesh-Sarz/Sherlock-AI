@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 
 from app.models.investigation_plan import InvestigationPlan
 from app.models.tool_result import ToolResult, ToolStatus
-from app.tools import cpu, disk, memory, startup
+from app.tools import cpu, memory, disk, startup, wifi
 
 logger = logging.getLogger(__name__)
 
