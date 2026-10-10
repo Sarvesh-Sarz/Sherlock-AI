@@ -13,7 +13,11 @@ import re
 from datetime import datetime, timezone
 
 from app.models.investigation_plan import InvestigationPlan
-from app.planner.rules import DEFAULT_TOOLS, KEYWORD_RULES
+from app.planner.rules import (
+    DEFAULT_TOOLS,
+    KEYWORD_RULES,
+    SPECIALIZED_KEYWORDS,
+)
 
 
 class Planner:
