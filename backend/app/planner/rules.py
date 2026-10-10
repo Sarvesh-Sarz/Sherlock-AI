@@ -23,7 +23,7 @@ KEYWORD_RULES: dict[str, list[str]] = {
     "internet": ["wifi"],
     "battery": ["battery", "cpu", "startup"],
     "hot": ["cpu", "temperature"],
-}
+}       
 
 # Used when no keyword in the description matches any rule above, so an
 # investigation never opens with literally nothing planned.
