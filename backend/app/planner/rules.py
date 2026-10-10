@@ -19,7 +19,8 @@ Planner's docstring.
 
 KEYWORD_RULES: dict[str, list[str]] = {
     "slow": ["cpu", "memory", "startup", "disk"],
-    "wifi": ["wifi", "internet"],
+    "wifi": ["wifi"],
+    "internet": ["wifi"],
     "battery": ["battery", "cpu", "startup"],
     "hot": ["cpu", "temperature"],
 }
