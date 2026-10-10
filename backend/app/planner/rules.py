@@ -23,8 +23,15 @@ KEYWORD_RULES: dict[str, list[str]] = {
     "internet": ["wifi"],
     "battery": ["battery", "cpu", "startup"],
     "hot": ["cpu", "temperature"],
-}       
+}
 
-# Used when no keyword in the description matches any rule above, so an
-# investigation never opens with literally nothing planned.
+# Generic symptoms such as "slow" should not trigger their broad
+# diagnostics when a more specific problem category is present.
+SPECIALIZED_KEYWORDS: set[str] = {
+    "wifi",
+    "internet",
+    "battery",
+    "hot",
+}
+
 DEFAULT_TOOLS: list[str] = ["cpu"]
