@@ -37,11 +37,26 @@ class Planner:
         tools_to_execute: list[str] = []
         matched_keywords: list[str] = []
 
+        matched_rules: list[tuple[str, list[str]]] = []
+
         for keyword, implied_tools in KEYWORD_RULES.items():
-            if not _contains_keyword(normalized_description, keyword):
+            if _contains_keyword(normalized_description, keyword):
+                matched_rules.append((keyword, implied_tools))
+
+        matched_specialized = any(
+            keyword in SPECIALIZED_KEYWORDS
+            for keyword, _ in matched_rules
+        )
+
+        for keyword, implied_tools in matched_rules:
+            # "slow" is a generic symptom. If a specialized category
+            # such as Wi-Fi or battery is already present, don't run the
+            # broad generic diagnostics as well.
+            if keyword == "slow" and matched_specialized:
                 continue
 
             matched_keywords.append(keyword)
+
             for tool in implied_tools:
                 if tool not in tools_to_execute:
                     tools_to_execute.append(tool)
