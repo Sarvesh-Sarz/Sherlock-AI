@@ -30,8 +30,6 @@ KEYWORD_RULES: dict[str, list[str]] = {
 SPECIALIZED_KEYWORDS: set[str] = {
     "wifi",
     "internet",
-    "battery",
-    "hot",
 }
 
 DEFAULT_TOOLS: list[str] = ["cpu"]
