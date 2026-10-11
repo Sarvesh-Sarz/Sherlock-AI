@@ -41,6 +41,7 @@ class ToolManager:
         ("disk", disk.run),
         ("startup", startup.run),
         ("wifi", wifi.run),
+        ("battery", battery.run),
     ]
 
     def execute(self, plan: InvestigationPlan) -> list[ToolResult]:
