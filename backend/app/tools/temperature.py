@@ -39,7 +39,6 @@ def run() -> ToolResult:
         logger.warning(
             "temperature tool failed to collect data: %s",
             exc,
-            exc_info=True,
         )
 
         return ToolResult(
