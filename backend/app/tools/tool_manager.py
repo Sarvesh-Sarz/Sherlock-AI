@@ -42,6 +42,7 @@ class ToolManager:
         ("startup", startup.run),
         ("wifi", wifi.run),
         ("battery", battery.run),
+        ("temperature", temperature.run),
     ]
 
     def execute(self, plan: InvestigationPlan) -> list[ToolResult]:
