@@ -50,10 +50,20 @@ def test_battery_and_hot_can_match_together():
 def test_unknown_problem_uses_default_tool():
     planner = Planner()
 
-    plan = planner.create_plan("My speakers are making a strange noise")
+    plan = planner.create_plan("My computer smells like fresh paint")
 
     assert plan.tools_to_execute == ["cpu"]
     assert plan.matched_keywords == []
+
+
+def test_speakers_problem_uses_audio():
+    planner = Planner()
+
+    plan = planner.create_plan("My speakers are making a strange noise")
+
+    assert plan.tools_to_execute == ["audio"]
+    assert plan.matched_keywords == ["speakers"]
+
 
 
 def test_keyword_matching_uses_whole_words():
