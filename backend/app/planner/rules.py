@@ -23,6 +23,17 @@ KEYWORD_RULES: dict[str, list[str]] = {
     "internet": ["wifi"],
     "battery": ["battery", "cpu", "startup"],
     "hot": ["cpu", "temperature"],
+    "audio": ["audio"],
+    "headphones": ["audio"],
+    "headphone": ["audio"],
+    "speaker": ["audio"],
+    "speakers": ["audio"],
+    "microphone": ["audio"],
+    "mic": ["audio"],
+    "sound": ["audio"],
+    "earphones": ["audio"],
+    "earphone": ["audio"],
+    "headset": ["audio"],
 }
 
 # Generic symptoms such as "slow" should not trigger their broad
