@@ -23,6 +23,7 @@ KEYWORD_RULES: dict[str, list[str]] = {
     "internet": ["wifi"],
     "battery": ["battery", "cpu", "startup"],
     "hot": ["cpu", "temperature"],
+    "overheating": ["cpu", "temperature"],
     "audio": ["audio"],
     "headphones": ["audio"],
     "headphone": ["audio"],
