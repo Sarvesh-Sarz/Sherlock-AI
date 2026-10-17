@@ -113,7 +113,9 @@ def test_successful_call_returns_a_well_formed_report(monkeypatch: pytest.Monkey
     assert len(report.hypotheses) == 1
     assert report.hypotheses[0].title == "C: is low on free space"
     assert report.hypotheses[0].confidence == Confidence.MEDIUM
-    assert report.recommendations == ["Consider freeing up space on C:."]
+    assert len(report.recommendations) == 1
+    assert report.recommendations[0].title == "Free up disk space"
+    assert len(report.recommendations[0].steps) >= 3
     assert report.confidence == Confidence.MEDIUM
     assert report.reasoning_method == "ollama:llama3.1"
 
