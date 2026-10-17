@@ -71,7 +71,7 @@ def test_execute_skips_planned_tools_that_are_not_implemented() -> None:
     """"battery" and "wifi" don't exist yet — a plan naming them must be
     handled gracefully, not raise or return a placeholder result for them.
     """
-    results = ToolManager().execute(_plan(["battery", "wifi"]))
+    results = ToolManager().execute(_plan(["nonexistent_tool"]))
 
     assert results == []
 
