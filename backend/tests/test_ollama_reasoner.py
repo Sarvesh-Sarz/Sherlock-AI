@@ -65,7 +65,20 @@ _VALID_REPORT_JSON = {
             "confidence": "medium",
         }
     ],
-    "recommendations": ["Consider freeing up space on C:."],
+    "recommendations": [
+        {
+            "title": "Free up disk space",
+            "reason": "Low free space may affect system performance.",
+            "steps": [
+            "Open Windows Settings.",
+            "Navigate to System and then Storage.",
+            "Review temporary files and remove only files you recognize.",
+            "Check the available disk space again."
+            ],
+            "expected_result": "More free disk space is available.",
+            "priority": "medium"
+        }
+    ],
     "confidence": "medium",
 }
 
