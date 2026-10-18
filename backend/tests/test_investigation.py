@@ -11,7 +11,8 @@ def test_start_investigation_returns_case(client: TestClient) -> None:
     body = response.json()
     # Status moves past "received" because the CPU tool runs synchronously
     # during intake — see InvestigationService._collect_evidence.
-    assert body["status"] == "investigating"
+    assert body["status"] == "resolved"
+    assert body["report"] is not None
     assert body["problem_description"] == "My laptop becomes slow after startup."
     assert body["case_id"]
 
