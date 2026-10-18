@@ -68,12 +68,11 @@ def test_execute_runs_all_four_implemented_tools_when_a_plan_calls_for_them() ->
 
 
 def test_execute_skips_planned_tools_that_are_not_implemented() -> None:
-    """"battery" and "wifi" don't exist yet — a plan naming them must be
-    handled gracefully, not raise or return a placeholder result for them.
-    """
+    """Unknown tools must be skipped without raising or returning placeholders."""
     results = ToolManager().execute(_plan(["nonexistent_tool"]))
 
     assert results == []
+
 
 
 def test_execute_only_runs_planned_tools_not_the_whole_registry() -> None:
