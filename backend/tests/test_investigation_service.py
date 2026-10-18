@@ -91,4 +91,5 @@ def test_start_investigation_handles_a_tool_manager_that_returns_nothing() -> No
     )
 
     assert investigation.evidence == []
-    assert investigation.status == CaseStatus.INVESTIGATING
+    assert investigation.status == CaseStatus.RESOLVED
+    assert investigation.report is not None 
