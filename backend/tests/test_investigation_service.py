@@ -64,7 +64,8 @@ def test_start_investigation_attaches_whatever_the_tool_manager_returns() -> Non
         InvestigationRequest(problem_description="Anything.")
     )
 
-    assert investigation.status == CaseStatus.INVESTIGATING
+    assert investigation.status == CaseStatus.RESOLVED
+    assert investigation.report is not None
     assert investigation.evidence == [fixed_result]
 
     # The plan the service built was actually handed to the tool
