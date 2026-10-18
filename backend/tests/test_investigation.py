@@ -97,11 +97,11 @@ def test_get_investigation_returns_created_case(client: TestClient) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["case_id"] == case_id
-    assert body["status"] == "investigating"
+    assert body["status"] == "resolved"
+    assert body["report"] is not None
     assert len(body["evidence"]) == 1
     assert body["evidence"][0]["tool_name"] == "cpu"
     assert body["findings"] == []
-    assert body["report"] is None
 
 
 def test_get_investigation_missing_case_returns_404(client: TestClient) -> None:
