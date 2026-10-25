@@ -1,0 +1,310 @@
+"""Investigation service.
+
+The single place that coordinates an investigation's lifecycle. Today
+it creates a case, asks the Planner which tools are worth running,
+hands that plan to the Tool Manager, researches focused questions
+derived from the complaint and evidence, and asks the Reasoner to turn
+evidence + research into a report — then persists the result via a
+repository.
+
+It knows nothing about individual tools, search providers, or reasoning
+implementations — those are entirely ToolManager's, Researcher's, and
+Reasoner's responsibilities respectively. It only orchestrates the
+sequence and handles the failure modes each stage can produce (a tool
+failing, research being unavailable, reasoning failing) without
+discarding whatever was already collected. Memory and Report Generator
+remain reserved for future use — the constructor already accepts them
+as optional collaborators so that wiring point doesn't move later.
+"""
+
+import logging
+
+from app.engine.memory import Memory
+from app.engine.report_generator import ReportGenerator
+from app.engine.investigation_graph import InvestigationGraph
+from app.models.investigation import CaseStatus, Investigation
+from app.models.investigation_plan import InvestigationPlan
+from app.models.research_result import ResearchResult
+from app.planner.planner import Planner
+from app.reasoning.baseline_reasoner import BaselineReasoner
+from app.reasoning.query_builder import build_research_queries
+from app.reasoning.reasoner import Reasoner
+from app.repositories.investigation_repository import InvestigationRepository
+from app.research.researcher import Researcher, UnconfiguredResearcher
+from app.schemas.investigation import InvestigationRequest
+from app.tools.tool_manager import ToolManager
+
+from app.models.troubleshooting_session import (
+    SessionStatus,
+    StepResult,
+    TroubleshootingSession,
+)
+
+logger = logging.getLogger(__name__)
+
+
+class InvestigationService:
+    """Coordinates the lifecycle of an investigation, start to finish."""
+
+    def __init__(
+        self,
+        repository: InvestigationRepository,
+        planner: Planner | None = None,
+        tool_manager: ToolManager | None = None,
+        researcher: Researcher | None = None,
+        reasoner: Reasoner | None = None,
+        memory: Memory | None = None,
+        report_generator: ReportGenerator | None = None,
+    ) -> None:
+        self._repository = repository
+
+        # Planner, Tool Manager, Researcher, and Reasoner are all real
+        # and used below. Each defaults to a safe, zero-configuration
+        # implementation rather than being required, so callers that
+        # don't need to override them (most tests, quick scripts) don't
+        # have to construct one — while staying overridable, e.g. to
+        # inject a stub in a test, or a configured TavilyResearcher /
+        # OllamaReasoner+FallbackReasoner in production (see app.api.deps).
+        self._planner = planner or Planner()
+        self._tool_manager = tool_manager or ToolManager()
+        self._researcher = researcher or UnconfiguredResearcher()
+        self._reasoner = reasoner or BaselineReasoner()
+
+        # Optional collaborators reserved for later pipeline stages.
+        self._memory = memory
+        self._report_generator = report_generator
+
+        # LangGraph now owns the investigation orchestration. The graph
+        # receives the same collaborators as the service, so dependency
+        # injection remains intact for production and tests.
+        self._investigation_graph = InvestigationGraph(
+            planner=self._planner,
+            tool_manager=self._tool_manager,
+            researcher=self._researcher,
+            reasoner=self._reasoner,
+        )
+
+    def start_investigation(self, request: InvestigationRequest) -> Investigation:
+        """Run a bounded LangGraph investigation and persist its final case.
+
+        The graph coordinates planning, evidence collection, assessment and
+        bounded follow-up collection, research, and reasoning. The service
+        remains responsible for mapping graph state onto the domain model
+        and persisting the case exactly once.
+        """
+        investigation = Investigation.new(request.problem_description)
+        state = self._investigation_graph.run(
+            case_id=investigation.case_id,
+            problem_description=investigation.problem_description,
+        )
+
+        plan = state.get("plan")
+        if plan is not None:
+            investigation.set_plan(plan)
+
+        for result in state.get("evidence", []):
+            investigation.add_evidence(result)
+
+        # Reflect the lifecycle stages in the persisted domain model.
+        investigation.mark_status(CaseStatus.INVESTIGATING)
+        investigation.mark_status(CaseStatus.REASONING)
+
+        report = state.get("report")
+        if report is not None and state.get("error") is None:
+            investigation.set_report(report)
+            investigation.mark_status(CaseStatus.RESOLVED)
+        else:
+            error = state.get("error") or "The investigation graph did not produce a report."
+            logger.error("Investigation failed for case %s: %s", investigation.case_id, error)
+            investigation.mark_status(CaseStatus.FAILED)
+
+        self._repository.add(investigation)
+        return investigation
+
+    def get_investigation(self, case_id: str) -> Investigation | None:
+        """Look up an investigation by ID. Returns None if it doesn't exist."""
+        return self._repository.get(case_id)
+
+    def start_troubleshooting(
+        self,
+        case_id: str,
+        recommendation_index: int,
+    ) -> TroubleshootingSession:
+        """Start a guided troubleshooting session for one recommendation."""
+
+        investigation = self._repository.get(case_id)
+
+        if investigation is None:
+            raise ValueError(f"Investigation {case_id} was not found.")
+
+        if investigation.report is None:
+            raise ValueError(
+                "Cannot start troubleshooting because this investigation has no report."
+            )
+
+        recommendations = investigation.report.recommendations
+
+        if (
+            recommendation_index < 0
+            or recommendation_index >= len(recommendations)
+        ):
+            raise ValueError(
+                f"Recommendation index {recommendation_index} is out of range."
+            )
+
+        recommendation = recommendations[recommendation_index]
+
+        if not recommendation.steps:
+            raise ValueError(
+                "Cannot start troubleshooting for a recommendation with no steps."
+            )
+
+        session = TroubleshootingSession.start(
+            case_id=case_id,
+            recommendation_index=recommendation_index,
+        )
+
+        investigation.set_troubleshooting_session(session)
+
+        self._repository.update(investigation)
+
+        return session
+
+    def answer_troubleshooting_step(
+        self,
+        case_id: str,
+        result: StepResult,
+    ) -> TroubleshootingSession:
+        """Record the user's answer to the current troubleshooting step."""
+
+        investigation = self._repository.get(case_id)
+
+        if investigation is None:
+            raise ValueError(f"Investigation {case_id} was not found.")
+
+        if investigation.report is None:
+            raise ValueError(
+                "Cannot answer troubleshooting steps because this investigation has no report."
+            )
+
+        session = investigation.troubleshooting_session
+
+        if session is None:
+            raise ValueError(
+                "No troubleshooting session has been started for this investigation."
+            )
+
+        if session.status is not SessionStatus.IN_PROGRESS:
+            raise ValueError(
+                f"Troubleshooting session is already {session.status.value}."
+            )
+
+        recommendations = investigation.report.recommendations
+
+        recommendation_index = session.current_recommendation_index
+
+        if (
+            recommendation_index < 0
+            or recommendation_index >= len(recommendations)
+        ):
+            raise ValueError(
+                f"Recommendation index {recommendation_index} is out of range."
+            )
+
+        recommendation = recommendations[recommendation_index]
+
+        if not recommendation.steps:
+            raise ValueError(
+                "The current recommendation has no troubleshooting steps."
+            )
+
+        is_final_step = (
+            session.current_step_index == len(recommendation.steps) - 1
+        )
+
+        has_next_recommendation = (
+            recommendation_index < len(recommendations) - 1
+        )
+
+        session.record_step_answer(
+            result,
+            is_final_step=is_final_step,
+            has_next_recommendation=has_next_recommendation,
+        )
+
+        investigation.set_troubleshooting_session(session)
+
+        self._repository.update(investigation)
+
+        return session
+
+    def _collect_evidence(self, investigation: Investigation, plan: InvestigationPlan) -> None:
+        """Attach whatever the Tool Manager reports for this plan.
+
+        This service doesn't know which tools are implemented, or how to
+        run any of them — that's entirely `ToolManager.execute`'s job,
+        including tolerating a tool that fails or one the plan calls for
+        that doesn't exist yet. Adding a new tool is a change to
+        `ToolManager`'s registry only; nothing here needs to change.
+        """
+        for result in self._tool_manager.execute(plan):
+            investigation.add_evidence(result)
+
+        investigation.mark_status(CaseStatus.INVESTIGATING)
+
+    def _research_evidence(self, investigation: Investigation) -> list[ResearchResult]:
+        """Look up focused questions derived from the complaint and the
+        evidence just collected.
+
+        Queries are built from the complaint and evidence signals, never
+        from the raw evidence payload (see `app.reasoning.query_builder`).
+        The Researcher itself never raises and returns `[]` when
+        unconfigured (see `Researcher.search`'s contract) — the
+        try/except here is defense in depth for a future implementation
+        that doesn't hold to that contract, the same role it plays
+        around tool execution in `ToolManager.execute`. Either way,
+        research coming back empty is never treated as a failure: it's
+        a normal, expected outcome the Reasoner (and the eventual
+        report's `research_notice`) handle directly.
+        """
+        results: list[ResearchResult] = []
+        for query in build_research_queries(investigation.problem_description, investigation.evidence):
+            try:
+                results.extend(self._researcher.search(query))
+            except Exception as exc:  # noqa: BLE001 — see docstring above.
+                logger.warning("Research query %r failed unexpectedly: %s", query, exc, exc_info=True)
+        return results
+
+    def _reason_over_evidence(
+        self,
+        investigation: Investigation,
+        plan: InvestigationPlan,
+        research: list[ResearchResult],
+    ) -> None:
+        """Ask the Reasoner for a report and attach it, or mark the case
+        FAILED without fabricating one.
+
+        Unlike tool or research failures, a Reasoner is explicitly
+        allowed to raise (see `Reasoner.investigate`'s contract) — this
+        is the one place that's caught, so a broken or unreachable
+        reasoning backend degrades the case's status instead of
+        discarding the plan and evidence already collected.
+        """
+        investigation.mark_status(CaseStatus.REASONING)
+        try:
+            report = self._reasoner.investigate(
+                case_id=investigation.case_id,
+                problem_description=investigation.problem_description,
+                plan=plan,
+                evidence=investigation.evidence,
+                research=research,
+            )
+        except Exception as exc:  # noqa: BLE001 — see docstring above.
+            logger.error(
+                "Reasoning failed for case %s: %s", investigation.case_id, exc, exc_info=True
+            )
+            investigation.mark_status(CaseStatus.FAILED)
+            return
+
+        investigation.set_report(report)
+        investigation.mark_status(CaseStatus.RESOLVED)
