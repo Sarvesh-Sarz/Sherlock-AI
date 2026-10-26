@@ -60,6 +60,7 @@ class InvestigationGraph:
         self._researcher = researcher
         self._reasoner = reasoner
         self._max_iterations = max_iterations
+        self._assessor = EvidenceAssessor()
 
         graph = StateGraph(InvestigationGraphState)
         graph.add_node("plan", self._plan)
