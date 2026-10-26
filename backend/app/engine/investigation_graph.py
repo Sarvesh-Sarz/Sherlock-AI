@@ -124,36 +124,28 @@ class InvestigationGraph:
         }
 
     def _assess(self, state: InvestigationGraphState) -> dict:
-        """Use the existing deterministic planner to discover evidence-led next steps."""
         plan = state["plan"]
         if plan is None:
             raise RuntimeError("Graph reached assessment without an investigation plan")
 
-        evidence_lines = []
-        for result in state["evidence"]:
-            if result.status.value == "success":
-                evidence_lines.append(f"{result.tool_name}: {result.payload}")
-        assessment_input = state["problem_description"]
-        if evidence_lines:
-            assessment_input += "\nCollected evidence:\n" + "\n".join(evidence_lines)
-
-        candidate = self._planner.create_plan(assessment_input)
+        assessment = self._assessor.assess(
+            problem_description=state["problem_description"],
+            evidence=state["evidence"],
+            executed_tools=state["executed_tools"],
+        )
         merged_tools = list(plan.tools_to_execute)
-        for tool_name in candidate.tools_to_execute:
+        for tool_name in assessment.additional_tools:
             if tool_name not in merged_tools:
                 merged_tools.append(tool_name)
 
-        merged_keywords = list(plan.matched_keywords)
-        for keyword in candidate.matched_keywords:
-            if keyword not in merged_keywords:
-                merged_keywords.append(keyword)
+        if assessment.reasons:
+            logger.info(
+                "Evidence assessment for case %s: %s",
+                state["case_id"],
+                "; ".join(assessment.reasons),
+            )
+        return {"plan": replace(plan, tools_to_execute=merged_tools)}
 
-        updated_plan = replace(
-            plan,
-            tools_to_execute=merged_tools,
-            matched_keywords=merged_keywords,
-        )
-        return {"plan": updated_plan}
 
     def _next_step(self, state: InvestigationGraphState) -> str:
         plan = state["plan"]
