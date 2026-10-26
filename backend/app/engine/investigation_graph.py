@@ -22,6 +22,7 @@ from app.planner.planner import Planner
 from app.reasoning.query_builder import build_research_queries
 from app.reasoning.reasoner import Reasoner
 from app.research.researcher import Researcher
+from app.engine.evidence_assessor import EvidenceAssessor
 
 logger = logging.getLogger(__name__)
 
