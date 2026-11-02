@@ -17,7 +17,8 @@ from langgraph.graph import END, START, StateGraph
 from app.models.investigation_plan import InvestigationPlan
 from app.models.investigation_report import InvestigationReport
 from app.models.research_result import ResearchResult
-from app.models.tool_result import ToolResult
+from app.models.tool_result import ToolResult, ToolStatus
+from app.models.trace import TraceEvent, TraceStage
 from app.planner.planner import Planner
 from app.reasoning.query_builder import build_research_queries
 from app.reasoning.reasoner import Reasoner
@@ -38,6 +39,7 @@ class InvestigationGraphState(TypedDict):
     iteration: int
     max_iterations: int
     error: str | None
+    trace: list[TraceEvent]
 
 
 class InvestigationGraph:
@@ -94,12 +96,21 @@ class InvestigationGraph:
             "iteration": 0,
             "max_iterations": self._max_iterations,
             "error": None,
+            "trace": [],
         }
         return self._compiled.invoke(initial_state)
 
     def _plan(self, state: InvestigationGraphState) -> dict:
         plan = self._planner.create_plan(state["problem_description"])
-        return {"plan": plan}
+        keywords = list(getattr(plan, "matched_keywords", []) or [])
+        why = f"matched keywords: {', '.join(keywords)}" if keywords else "no specific keywords matched, using the default check"
+        event = TraceEvent(
+            stage=TraceStage.PLAN,
+            iteration=state["iteration"],
+            message=f"Planned diagnostics: {', '.join(plan.tools_to_execute)} ({why}).",
+            details={"tools": list(plan.tools_to_execute), "matched_keywords": keywords},
+        )
+        return {"plan": plan, "trace": [*state["trace"], event]}
 
     def _collect(self, state: InvestigationGraphState) -> dict:
         plan = state["plan"]
@@ -115,7 +126,24 @@ class InvestigationGraph:
         round_plan = replace(plan, tools_to_execute=pending)
         results = self._tool_manager.execute(round_plan)
 
+        round_number = state["iteration"] + 1
+        statuses = {r.tool_name: _status_value(r.status) for r in results}
+        skipped = [name for name in pending if name not in statuses]
+        failed = [name for name, status in statuses.items() if status != "success"]
+        message = f"Round {round_number}: ran {', '.join(statuses) or 'no tools'}."
+        if failed:
+            message += f" Failed (treated as unknown, not normal): {', '.join(failed)}."
+        if skipped:
+            message += f" Not available on this system: {', '.join(skipped)}."
+        event = TraceEvent(
+            stage=TraceStage.COLLECT,
+            iteration=round_number,
+            message=message,
+            details={"requested": pending, "results": statuses, "failed": failed, "skipped": skipped},
+        )
+
         return {
+            "trace": [*state["trace"], event],
             "evidence": [*state["evidence"], *results],
             # Mark requested tools as attempted even if ToolManager skips an
             # unregistered tool; otherwise the graph could loop forever.
@@ -144,7 +172,39 @@ class InvestigationGraph:
                 state["case_id"],
                 "; ".join(assessment.reasons),
             )
-        return {"plan": replace(plan, tools_to_execute=merged_tools)}
+
+        executed = set(state["executed_tools"])
+        not_run = [t for t in merged_tools if t not in executed]
+        limit_reached = state["iteration"] >= state["max_iterations"]
+        if assessment.additional_tools:
+            message = "Evidence called for follow-up: " + "; ".join(assessment.reasons) + "."
+            if limit_reached:
+                message += (
+                    f" Iteration limit ({state['max_iterations']}) reached, so these were "
+                    f"not run: {', '.join(not_run)}."
+                )
+        elif not_run and limit_reached:
+            message = (
+                f"Iteration limit ({state['max_iterations']}) reached; "
+                f"planned tools not run: {', '.join(not_run)}."
+            )
+        else:
+            message = "Evidence reviewed; no further diagnostics needed."
+        event = TraceEvent(
+            stage=TraceStage.ASSESS,
+            iteration=state["iteration"],
+            message=message,
+            details={
+                "follow_up_tools": list(assessment.additional_tools),
+                "reasons": list(assessment.reasons),
+                "iteration_limit_reached": limit_reached,
+                "not_run": not_run if limit_reached else [],
+            },
+        )
+        return {
+            "plan": replace(plan, tools_to_execute=merged_tools),
+            "trace": [*state["trace"], event],
+        }
 
 
     def _next_step(self, state: InvestigationGraphState) -> str:
@@ -158,17 +218,36 @@ class InvestigationGraph:
 
     def _research(self, state: InvestigationGraphState) -> dict:
         results: list[ResearchResult] = []
-        for query in build_research_queries(state["problem_description"], state["evidence"]):
+        queries = build_research_queries(state["problem_description"], state["evidence"])
+        failed_queries = 0
+        for query in queries:
             try:
                 results.extend(self._researcher.search(query))
             except Exception as exc:  # defense in depth; research is optional
+                failed_queries += 1
                 logger.warning("Research query %r failed: %s", query, exc, exc_info=True)
-        return {"research": results}
+        message = f"Research: {len(queries)} focused queries, {len(results)} results."
+        if failed_queries:
+            message += f" {failed_queries} queries failed."
+        if not results:
+            message += " External research did not contribute to this case."
+        event = TraceEvent(
+            stage=TraceStage.RESEARCH,
+            iteration=state["iteration"],
+            message=message,
+            details={"queries": len(queries), "results": len(results), "failed_queries": failed_queries},
+        )
+        return {"research": results, "trace": [*state["trace"], event]}
 
     def _reason(self, state: InvestigationGraphState) -> dict:
         plan = state["plan"]
         if plan is None:
-            return {"error": "No investigation plan was produced"}
+            event = TraceEvent(
+                stage=TraceStage.REASON,
+                iteration=state["iteration"],
+                message="Reasoning could not start: no investigation plan was produced.",
+            )
+            return {"error": "No investigation plan was produced", "trace": [*state["trace"], event]}
 
         try:
             report = self._reasoner.investigate(
@@ -180,5 +259,22 @@ class InvestigationGraph:
             )
         except Exception as exc:  # the service converts this into CaseStatus.FAILED
             logger.error("Reasoning failed for case %s: %s", state["case_id"], exc, exc_info=True)
-            return {"error": str(exc), "report": None}
-        return {"report": report, "error": None}
+            event = TraceEvent(
+                stage=TraceStage.REASON,
+                iteration=state["iteration"],
+                message=f"Reasoning failed: {exc}. Collected evidence was preserved; no report was invented.",
+                details={"succeeded": False},
+            )
+            return {"error": str(exc), "report": None, "trace": [*state["trace"], event]}
+        method = getattr(report, "reasoning_method", None)
+        event = TraceEvent(
+            stage=TraceStage.REASON,
+            iteration=state["iteration"],
+            message="Reasoning complete" + (f" using {method}." if method else "."),
+            details={"succeeded": True, "reasoning_method": method},
+        )
+        return {"report": report, "error": None, "trace": [*state["trace"], event]}
+
+
+def _status_value(status) -> str:
+    return status.value if isinstance(status, ToolStatus) else str(status)
