@@ -15,6 +15,7 @@ from app.models.troubleshooting_session import TroubleshootingSession
 
 from app.models.investigation import CaseStatus, Investigation
 from app.models.tool_result import ToolResult
+from app.models.trace import TraceEvent
 from app.models.investigation_report import InvestigationReport
 
 
@@ -42,6 +43,7 @@ class InvestigationResponse(BaseModel):
     evidence: list[ToolResult] = Field(default_factory=list)
     report: InvestigationReport | None = None
     troubleshooting_session: TroubleshootingSession | None = None
+    trace: list[TraceEvent] = Field(default_factory=list)
     message: str | None = None
 
     @classmethod
@@ -54,6 +56,7 @@ class InvestigationResponse(BaseModel):
             evidence=investigation.evidence,
             report=investigation.report,
             troubleshooting_session=investigation.troubleshooting_session,
+            trace=investigation.trace,
         )
 
 
@@ -69,6 +72,7 @@ class InvestigationStatus(BaseModel):
     findings: list[str] = Field(default_factory=list)
     report: InvestigationReport | None = None
     troubleshooting_session: TroubleshootingSession | None = None
+    trace: list[TraceEvent] = Field(default_factory=list)
 
     @classmethod
     def from_domain(cls, investigation: Investigation) -> "InvestigationStatus":
@@ -82,4 +86,5 @@ class InvestigationStatus(BaseModel):
             findings=investigation.findings,
             report=investigation.report,
             troubleshooting_session=investigation.troubleshooting_session,
+            trace=investigation.trace,
         )
