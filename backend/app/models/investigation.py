@@ -17,6 +17,7 @@ from app.models.troubleshooting_session import TroubleshootingSession
 from app.models.investigation_plan import InvestigationPlan
 from app.models.investigation_report import InvestigationReport
 from app.models.tool_result import ToolResult
+from app.models.trace import TraceEvent
 
 
 class CaseStatus(str, Enum):
@@ -52,6 +53,7 @@ class Investigation:
     findings: list[str] = field(default_factory=list)
     report: InvestigationReport | None = None
     troubleshooting_session: TroubleshootingSession | None = None
+    trace: list[TraceEvent] = field(default_factory=list)
 
     @classmethod
     def new(cls, problem_description: str) -> "Investigation":
@@ -87,6 +89,11 @@ class Investigation:
 
     def set_report(self, report: InvestigationReport) -> None:
         self.report = report
+
+    def set_trace(self, trace: list[TraceEvent]) -> None:
+        """Attach the investigation timeline recorded by the graph."""
+        self.trace = list(trace)
+        self.updated_at = datetime.now(timezone.utc)
 
     def set_troubleshooting_session(
         self,
