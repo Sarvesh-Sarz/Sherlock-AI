@@ -105,6 +105,8 @@ class InvestigationService:
         for result in state.get("evidence", []):
             investigation.add_evidence(result)
 
+        investigation.set_trace(state.get("trace", []))
+
         # Reflect the lifecycle stages in the persisted domain model.
         investigation.mark_status(CaseStatus.INVESTIGATING)
         investigation.mark_status(CaseStatus.REASONING)
