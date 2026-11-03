@@ -17,9 +17,9 @@ from app.reasoning.ollama_reasoner import OllamaReasoner
 from app.reasoning.reasoner import Reasoner
 from app.research.researcher import UnconfiguredResearcher
 from app.research.tavily_researcher import TavilyResearcher
-from app.repositories.investigation_repository import (
-    InMemoryInvestigationRepository,
-    InvestigationRepository,
+from app.repositories.investigation_repository import InvestigationRepository
+from app.repositories.sqlite_investigation_repository import (
+    SqliteInvestigationRepository,
 )
 from app.services.investigation_service import InvestigationService
 from app.tools.tool_manager import ToolManager
@@ -29,12 +29,11 @@ from app.tools.tool_manager import ToolManager
 def get_investigation_repository() -> InvestigationRepository:
     """Return the process-wide investigation repository.
 
-    Cached so every request shares one store for now. Replace this with
-    a dependency that yields a database session per request once
-    persistence is introduced — callers only depend on the
-    `InvestigationRepository` interface, so nothing else needs to change.
+    Cases are stored in SQLite at `Settings.database_path` so they
+    survive restarts. Cached so every request shares one connection.
+    Callers only depend on the `InvestigationRepository` interface.
     """
-    return InMemoryInvestigationRepository()
+    return SqliteInvestigationRepository(get_settings().database_path)
 
 
 @lru_cache
