@@ -1,4 +1,3 @@
-import { CheckCircle2, XCircle } from 'lucide-react';
 import type { CpuPayload, DiskPayload, MemoryPayload, StartupPayload, ToolResult } from '../../types';
 import { LabeledValue } from '../ui/LabeledValue';
 
@@ -30,13 +29,9 @@ export function ToolResultCard({ result }: ToolResultCardProps) {
   return (
     <div className="rounded-lg border border-case-border bg-case-surface px-5 py-4">
       <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {isSuccess ? (
-            <CheckCircle2 className="h-4 w-4 text-case-brass" strokeWidth={1.5} aria-hidden="true" />
-          ) : (
-            <XCircle className="h-4 w-4 text-case-danger" strokeWidth={1.5} aria-hidden="true" />
-          )}
+        <div className="flex items-baseline gap-2">
           <span className="text-sm font-medium text-case-text">{displayName}</span>
+          {!isSuccess ? <span className="text-xs text-case-danger">Failed</span> : null}
         </div>
         <span className="font-mono text-xs text-case-faint">
           {formatTime(result.collected_at)}
