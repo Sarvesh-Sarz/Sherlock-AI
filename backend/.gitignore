@@ -7,3 +7,9 @@ venv/
 *.egg-info/
 .mypy_cache/
 .ruff_cache/
+
+# Local investigation database
+data/
+*.db
+*.db-wal
+*.db-shm
