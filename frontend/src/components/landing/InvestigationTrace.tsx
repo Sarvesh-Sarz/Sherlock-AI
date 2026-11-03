@@ -1,27 +1,22 @@
-import { BookOpen, GitBranch, Lightbulb, ListChecks, Search } from 'lucide-react';
-import type { ComponentType } from 'react';
 import type { TraceEvent, TraceStage } from '../../types';
 
 interface InvestigationTraceProps {
   trace: TraceEvent[];
 }
 
-const STAGES: Record<
-  TraceStage,
-  { label: string; Icon: ComponentType<{ className?: string; strokeWidth?: number; 'aria-hidden'?: boolean | 'true' }> }
-> = {
-  plan: { label: 'Planned', Icon: ListChecks },
-  collect: { label: 'Collected evidence', Icon: Search },
-  assess: { label: 'Assessed evidence', Icon: GitBranch },
-  research: { label: 'Researched', Icon: BookOpen },
-  reason: { label: 'Reasoned', Icon: Lightbulb },
+const STAGE_LABELS: Record<TraceStage, string> = {
+  plan: 'Plan',
+  collect: 'Collect',
+  assess: 'Assess',
+  research: 'Research',
+  reason: 'Reason',
 };
 
 /**
- * The investigation timeline: what Sherlock did, in order, and why.
- * Rendered straight from the backend `trace` — nothing here is inferred.
- * The one thing given visual weight is a follow-up decision (evidence
- * changed the plan); everything else stays quiet.
+ * The investigation timeline as plain text: what Sherlock did, in order,
+ * and why. Rendered straight from the backend `trace`; nothing is
+ * inferred. Only a follow-up decision (evidence changed the plan) gets
+ * visual emphasis.
  */
 export function InvestigationTrace({ trace }: InvestigationTraceProps) {
   if (trace.length === 0) {
@@ -44,13 +39,12 @@ export function InvestigationTrace({ trace }: InvestigationTraceProps) {
         </p>
       </div>
 
-      <ol className="rounded-lg border border-case-border bg-case-surface px-5 py-5">
+      <ol className="divide-y divide-case-border rounded-lg border border-case-border bg-case-surface">
         {trace.map((event, index) => (
           <TraceRow
             key={`${event.stage}-${index}`}
             event={event}
             offset={formatOffset(new Date(event.timestamp).getTime() - startedAt)}
-            isLast={index === trace.length - 1}
           />
         ))}
       </ol>
@@ -58,115 +52,71 @@ export function InvestigationTrace({ trace }: InvestigationTraceProps) {
   );
 }
 
-function TraceRow({ event, offset, isLast }: { event: TraceEvent; offset: string; isLast: boolean }) {
-  const { label, Icon } = STAGES[event.stage] ?? { label: event.stage, Icon: ListChecks };
+function TraceRow({ event, offset }: { event: TraceEvent; offset: string }) {
   const followUps = stringList(event.details.follow_up_tools);
   const isDecision = event.stage === 'assess' && followUps.length > 0;
-  const reasonedFailure = event.stage === 'reason' && event.details.succeeded === false;
+  const notRun = event.details.iteration_limit_reached === true ? stringList(event.details.not_run) : [];
 
   return (
-    <li className="relative flex gap-4 pb-6 last:pb-0">
-      {!isLast ? (
-        <span className="absolute left-[11px] top-7 h-[calc(100%-1.75rem)] w-px bg-case-border" aria-hidden="true" />
-      ) : null}
+    <li className="grid grid-cols-[4.5rem_1fr_auto] gap-x-4 px-5 py-3">
+      <span className="text-sm text-case-text">{STAGE_LABELS[event.stage] ?? event.stage}</span>
 
-      <span
-        className={`relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${
-          isDecision
-            ? 'border-case-brass bg-case-bg text-case-brass'
-            : reasonedFailure
-              ? 'border-case-danger bg-case-bg text-case-danger'
-              : 'border-case-border-strong bg-case-bg text-case-muted'
-        }`}
-      >
-        <Icon className="h-3 w-3" strokeWidth={1.75} aria-hidden="true" />
-      </span>
-
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline justify-between gap-3">
-          <p className="text-sm font-medium text-case-text">{label}</p>
-          <span className="font-mono text-xs text-case-faint">{offset}</span>
-        </div>
-
-        {isDecision ? <FollowUpCallout event={event} tools={followUps} /> : <p className="mt-1 text-sm text-case-muted">{event.message}</p>}
+      <div className="min-w-0">
+        {isDecision ? (
+          <FollowUp event={event} />
+        ) : (
+          <p className="text-sm text-case-muted">{event.message}</p>
+        )}
 
         {event.stage === 'collect' ? <ToolOutcomes details={event.details} /> : null}
-        {event.stage === 'assess' && !isDecision && event.details.iteration_limit_reached === true ? (
-          <NotRun tools={stringList(event.details.not_run)} />
+        {!isDecision && notRun.length > 0 ? (
+          <p className="mt-1 text-xs text-case-faint">Not run: {notRun.join(', ')}.</p>
         ) : null}
       </div>
+
+      <span className="font-mono text-xs text-case-faint">{offset}</span>
     </li>
   );
 }
 
-/** Evidence changed the plan: show the reason and the tools it added. */
-function FollowUpCallout({ event, tools }: { event: TraceEvent; tools: string[] }) {
+/** Evidence changed the plan: the reason for each added check, in brass. */
+function FollowUp({ event }: { event: TraceEvent }) {
   const reasons = stringList(event.details.reasons);
   const notRun = event.details.iteration_limit_reached === true ? stringList(event.details.not_run) : [];
 
   return (
-    <div className="mt-2 rounded-md border border-case-brass-dim bg-case-bg px-4 py-3">
-      <p className="mb-2 text-xs text-case-brass">The evidence called for more checks</p>
-      <ul className="flex flex-col gap-1.5">
+    <div className="border-l-2 border-case-brass pl-3">
+      <p className="text-sm text-case-brass">The evidence called for more checks:</p>
+      <ul className="mt-1 flex flex-col gap-1">
         {reasons.map((reason) => {
           const [tool, ...rest] = reason.split(': ');
           return (
-            <li key={reason} className="flex items-baseline gap-2 text-sm text-case-text">
-              <span className="shrink-0 rounded bg-case-surface px-1.5 py-0.5 font-mono text-xs text-case-brass">{tool}</span>
-              <span className="text-case-muted">{rest.join(': ')}</span>
+            <li key={reason} className="text-sm text-case-muted">
+              <span className="font-mono text-case-text">{tool}</span>, {rest.join(': ')}
             </li>
           );
         })}
       </ul>
       {notRun.length > 0 ? (
-        <p className="mt-2 text-xs text-case-faint">Iteration limit reached, so these were not run: {notRun.join(', ')}.</p>
+        <p className="mt-1 text-xs text-case-faint">Iteration limit reached, so these were not run: {notRun.join(', ')}.</p>
       ) : null}
-      <span className="sr-only">Added checks: {tools.join(', ')}</span>
     </div>
   );
 }
 
-/** One chip per tool in a collection round; failed and unavailable tools are never shown as normal. */
+/** One line per collection round; failed and unavailable tools are never presented as normal. */
 function ToolOutcomes({ details }: { details: Record<string, unknown> }) {
   const results = (details.results ?? {}) as Record<string, string>;
-  const skipped = stringList(details.skipped);
-  const entries = [
-    ...Object.entries(results).map(([tool, status]) => ({ tool, state: status === 'success' ? 'ok' : 'failed' })),
-    ...skipped.map((tool) => ({ tool, state: 'skipped' })),
+  const parts = [
+    ...Object.entries(results).map(([tool, status]) =>
+      status === 'success' ? tool : `${tool} (failed, result unknown)`,
+    ),
+    ...stringList(details.skipped).map((tool) => `${tool} (unavailable)`),
   ];
-  if (entries.length === 0) {
+  if (parts.length === 0) {
     return null;
   }
-
-  const styles = {
-    ok: { dot: 'bg-case-brass', text: 'text-case-text', note: '' },
-    failed: { dot: 'bg-case-danger', text: 'text-case-danger', note: 'failed, unknown' },
-    skipped: { dot: 'bg-case-faint', text: 'text-case-faint', note: 'unavailable' },
-  } as const;
-
-  return (
-    <ul className="mt-2 flex flex-wrap gap-2">
-      {entries.map(({ tool, state }) => (
-        <li
-          key={`${tool}-${state}`}
-          className="flex items-center gap-1.5 rounded-full border border-case-border px-2.5 py-1 text-xs"
-        >
-          <span className={`h-1.5 w-1.5 rounded-full ${styles[state as keyof typeof styles].dot}`} aria-hidden="true" />
-          <span className={`font-mono ${styles[state as keyof typeof styles].text}`}>{tool}</span>
-          {styles[state as keyof typeof styles].note ? (
-            <span className="text-case-faint">{styles[state as keyof typeof styles].note}</span>
-          ) : null}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function NotRun({ tools }: { tools: string[] }) {
-  if (tools.length === 0) {
-    return null;
-  }
-  return <p className="mt-1 text-xs text-case-faint">Not run: {tools.join(', ')}.</p>;
+  return <p className="mt-1 font-mono text-xs text-case-faint">{parts.join(', ')}</p>;
 }
 
 function stringList(value: unknown): string[] {
