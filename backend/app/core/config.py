@@ -47,6 +47,11 @@ class Settings(BaseSettings):
     ollama_model: str = "llama3.1"
     ollama_timeout_seconds: float = 15.0
 
+    # Where investigations are stored (SQLite). Relative paths resolve from
+    # the directory the backend is started in. Use ":memory:" for a
+    # throwaway database (tests). Override with SHERLOCK_DATABASE_PATH.
+    database_path: str = "data/sherlock.db"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_prefix="SHERLOCK_",
