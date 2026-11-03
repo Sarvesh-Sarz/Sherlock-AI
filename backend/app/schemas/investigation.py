@@ -13,7 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.troubleshooting_session import TroubleshootingSession
 
-from app.models.investigation import CaseStatus, Investigation
+from app.models.investigation import CaseStatus, CaseSummary, Investigation
 from app.models.tool_result import ToolResult
 from app.models.trace import TraceEvent
 from app.models.investigation_report import InvestigationReport
@@ -87,4 +87,24 @@ class InvestigationStatus(BaseModel):
             report=investigation.report,
             troubleshooting_session=investigation.troubleshooting_session,
             trace=investigation.trace,
+        )
+
+
+class InvestigationSummary(BaseModel):
+    """One row of the recent-cases list."""
+
+    case_id: str
+    problem_description: str
+    status: CaseStatus
+    created_at: datetime
+    updated_at: datetime
+
+    @classmethod
+    def from_domain(cls, summary: CaseSummary) -> "InvestigationSummary":
+        return cls(
+            case_id=summary.case_id,
+            problem_description=summary.problem_description,
+            status=summary.status,
+            created_at=summary.created_at,
+            updated_at=summary.updated_at,
         )

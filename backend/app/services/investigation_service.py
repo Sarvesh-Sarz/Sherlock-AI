@@ -22,7 +22,7 @@ import logging
 from app.engine.memory import Memory
 from app.engine.report_generator import ReportGenerator
 from app.engine.investigation_graph import InvestigationGraph
-from app.models.investigation import CaseStatus, Investigation
+from app.models.investigation import CaseStatus, CaseSummary, Investigation
 from app.models.investigation_plan import InvestigationPlan
 from app.models.research_result import ResearchResult
 from app.planner.planner import Planner
@@ -122,6 +122,10 @@ class InvestigationService:
 
         self._repository.add(investigation)
         return investigation
+
+    def list_recent_investigations(self, limit: int = 20) -> list[CaseSummary]:
+        """Summaries of the most recent cases, newest first."""
+        return self._repository.list_recent(limit)
 
     def get_investigation(self, case_id: str) -> Investigation | None:
         """Look up an investigation by ID. Returns None if it doesn't exist."""
