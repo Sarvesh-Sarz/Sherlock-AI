@@ -1,6 +1,7 @@
 import type { CaseStatus, InvestigationResult } from '../../types';
 import { InvestigationReportCard } from './InvestigationReportCard';
 import { LabeledValue } from '../ui/LabeledValue';
+import { InvestigationTrace } from './InvestigationTrace';
 import { ToolResultCard } from './ToolResultCard';
 
 interface InvestigationResultsProps {
@@ -36,6 +37,8 @@ export function InvestigationResults({ result }: InvestigationResultsProps) {
         </div>
         <LabeledValue label="Problem Description" value={result.problem_description} />
       </div>
+
+      <InvestigationTrace trace={result.trace ?? []} />
 
       <h3 className="mb-3 font-mono text-xs uppercase tracking-widest2 text-case-faint">
         Evidence
