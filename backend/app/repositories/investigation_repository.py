@@ -3,13 +3,13 @@
 `InvestigationRepository` is the contract the rest of the app depends on.
 `InMemoryInvestigationRepository` is a throwaway implementation that
 satisfies that contract for now — swapping in a real database later
-(e.g. `SqlInvestigationRepository`) means changing one dependency wiring
+(`SqliteInvestigationRepository`) means changing one dependency wiring
 point in `app.api.deps`, not the service or API layer.
 """
 
 from abc import ABC, abstractmethod
 
-from app.models.investigation import Investigation
+from app.models.investigation import CaseSummary, Investigation
 
 
 class InvestigationRepository(ABC):
@@ -26,6 +26,10 @@ class InvestigationRepository(ABC):
     @abstractmethod
     def update(self, investigation: Investigation) -> None:
         """Persist changes to an existing investigation."""
+
+    @abstractmethod
+    def list_recent(self, limit: int = 20) -> list[CaseSummary]:
+        """Return summaries of the most recently created cases, newest first."""
 
 
 class InMemoryInvestigationRepository(InvestigationRepository):
@@ -47,3 +51,9 @@ class InMemoryInvestigationRepository(InvestigationRepository):
 
     def update(self, investigation: Investigation) -> None:
         self._cases[investigation.case_id] = investigation
+
+    def list_recent(self, limit: int = 20) -> list[CaseSummary]:
+        newest_first = sorted(
+            self._cases.values(), key=lambda case: case.created_at, reverse=True
+        )
+        return [case.summary() for case in newest_first[:limit]]
