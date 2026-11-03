@@ -134,6 +134,25 @@ export interface StartupPayload {
   sources_unavailable: StartupUnavailableSource[];
 }
 
+/** Mirrors `app.models.trace.TraceStage`. */
+export type TraceStage = 'plan' | 'collect' | 'assess' | 'research' | 'reason';
+
+/**
+ * Mirrors `app.models.trace.TraceEvent` — one step of the investigation
+ * timeline. `details` is structured per stage (see the backend graph):
+ * plan: tools, matched_keywords; collect: requested, results, failed,
+ * skipped; assess: follow_up_tools, reasons, iteration_limit_reached,
+ * not_run; research: queries, results, failed_queries; reason:
+ * succeeded, reasoning_method.
+ */
+export interface TraceEvent {
+  stage: TraceStage;
+  timestamp: string;
+  iteration: number;
+  message: string;
+  details: Record<string, unknown>;
+}
+
 /**
  * Mirrors `InvestigationResponse` from `POST /investigation/start`
  * (and, with the same fields present, `InvestigationStatus` from
@@ -146,6 +165,7 @@ export interface InvestigationResult {
   created_at: string;
   evidence: ToolResult[];
   report?: InvestigationReport;
+  trace?: TraceEvent[];
   message?: string;
 }
 
@@ -186,7 +206,7 @@ export interface InvestigationReport {
 export type TroubleshootingStatus =
   | 'in_progress'
   | 'resolved'
-  | 'abandoned';
+  | 'exhausted';
 
 /**
  * Mirrors `app.models.troubleshooting_session.StepResult`.
@@ -214,30 +234,6 @@ export interface TroubleshootingAnswer {
 export interface TroubleshootingSession {
   case_id: string;
   status: TroubleshootingStatus;
-  current_recommendation_index: number;
-  current_step_index: number;
-  answers: TroubleshootingAnswer[];
-  started_at: string;
-  updated_at: string;
-}
-
-export type SessionStatus =
-  | 'in_progress'
-  | 'resolved'
-  | 'could_not_complete';
-
-export type StepResult = 'done' | 'could_not_complete';
-
-export interface TroubleshootingAnswer {
-  recommendation_index: number;
-  step_index: number;
-  result: StepResult;
-  answered_at: string;
-}
-
-export interface TroubleshootingSession {
-  case_id: string;
-  status: SessionStatus;
   current_recommendation_index: number;
   current_step_index: number;
   answers: TroubleshootingAnswer[];
