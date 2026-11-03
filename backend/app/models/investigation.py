@@ -39,6 +39,17 @@ class CaseStatus(str, Enum):
     FAILED = "failed"
 
 
+@dataclass(frozen=True)
+class CaseSummary:
+    """The few fields needed to list a case without loading all of it."""
+
+    case_id: str
+    problem_description: str
+    status: CaseStatus
+    created_at: datetime
+    updated_at: datetime
+
+
 @dataclass
 class Investigation:
     """A single investigation, from intake through to a resolved report."""
@@ -65,6 +76,15 @@ class Investigation:
             status=CaseStatus.RECEIVED,
             created_at=now,
             updated_at=now,
+        )
+
+    def summary(self) -> CaseSummary:
+        return CaseSummary(
+            case_id=self.case_id,
+            problem_description=self.problem_description,
+            status=self.status,
+            created_at=self.created_at,
+            updated_at=self.updated_at,
         )
 
     def set_plan(self, plan: InvestigationPlan) -> None:
