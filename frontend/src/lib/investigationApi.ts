@@ -1,4 +1,5 @@
 import type {
+  CaseSummary,
   InvestigationResult,
   StepResult,
   TroubleshootingSession,
@@ -50,6 +51,42 @@ export async function startInvestigation(problemDescription: string): Promise<In
     return (await response.json()) as InvestigationResult;
   } catch {
     throw new InvestigationApiError('The backend returned a response Sherlock could not understand.');
+  }
+}
+
+/**
+ * GET /investigation — the most recent cases, newest first (summaries only).
+ */
+export async function listInvestigations(limit = 20): Promise<CaseSummary[]> {
+  return getJson<CaseSummary[]>(`/investigation?limit=${limit}`, 'the list of recent cases');
+}
+
+/**
+ * GET /investigation/{case_id} — reopen a saved case with its full
+ * evidence, trace and report. Same shape the results view already renders.
+ */
+export async function getInvestigation(caseId: string): Promise<InvestigationResult> {
+  return getJson<InvestigationResult>(`/investigation/${encodeURIComponent(caseId)}`, 'that investigation');
+}
+
+async function getJson<T>(path: string, what: string): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`);
+  } catch {
+    throw new InvestigationApiError(
+      `Couldn't reach Sherlock's backend at ${API_BASE_URL}. Make sure it's running and try again.`,
+    );
+  }
+
+  if (!response.ok) {
+    throw new InvestigationApiError(await describeErrorResponse(response));
+  }
+
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new InvestigationApiError(`The backend returned ${what} in a form Sherlock could not understand.`);
   }
 }
 
