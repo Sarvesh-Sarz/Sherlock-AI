@@ -9,15 +9,16 @@
 export type InterfaceMode = 'professional' | 'sherlock';
 
 /**
- * Shape of a single past investigation. Nothing in the app currently
- * produces this data — it exists so the Recent Cases list has a real
- * contract to render against once a backend is connected.
+ * Mirrors `InvestigationSummary` from `GET /investigation` — one row of
+ * the Recent Cases list. Just enough to list a case; opening it fetches
+ * the full investigation.
  */
-export interface InvestigationCase {
-  id: string;
-  summary: string;
-  createdAt: string;
-  status: 'open' | 'resolved';
+export interface CaseSummary {
+  case_id: string;
+  problem_description: string;
+  status: CaseStatus;
+  created_at: string;
+  updated_at: string;
 }
 
 export type RecommendationPriority = 'high' | 'medium' | 'low';
