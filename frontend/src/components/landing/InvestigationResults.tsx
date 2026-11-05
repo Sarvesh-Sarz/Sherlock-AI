@@ -1,4 +1,5 @@
-import type { CaseStatus, InvestigationResult } from '../../types';
+import { STATUS_LABELS } from '../../lib/caseStatus';
+import type { InvestigationResult } from '../../types';
 import { InvestigationReportCard } from './InvestigationReportCard';
 import { LabeledValue } from '../ui/LabeledValue';
 import { InvestigationTrace } from './InvestigationTrace';
@@ -7,16 +8,6 @@ import { ToolResultCard } from './ToolResultCard';
 interface InvestigationResultsProps {
   result: InvestigationResult;
 }
-
-const STATUS_LABELS: Record<CaseStatus, string> = {
-  received: 'Received',
-  planning: 'Planning',
-  investigating: 'Investigating',
-  reasoning: 'Reasoning',
-  reporting: 'Reporting',
-  resolved: 'Resolved',
-  failed: 'Failed',
-};
 
 /**
  * Shown below the intake form once `POST /investigation/start` returns —
