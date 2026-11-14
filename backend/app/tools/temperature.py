@@ -6,14 +6,13 @@ The tool first tries psutil sensors and then falls back to the
 Windows ACPI thermal-zone interface.
 """
 
-import json
 import logging
-import subprocess
 from datetime import datetime, timezone
 
 import psutil
 
 from app.models.tool_result import ToolResult, ToolStatus
+from app.tools._command import CommandError, run_powershell_json
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +59,13 @@ def _collect() -> dict:
             source="psutil",
         )
 
-    sensors = _collect_windows_thermal_zones()
+    reason: str | None = None
+
+    try:
+        sensors = _collect_windows_thermal_zones()
+    except CommandError as exc:
+        sensors = []
+        reason = str(exc)
 
     if sensors:
         return _build_payload(
@@ -68,9 +73,15 @@ def _collect() -> dict:
             source="windows_acpi",
         )
 
-    raise RuntimeError(
-        "No temperature sensors are available on this Windows system"
-    )
+    message = "No temperature sensors are available on this Windows system"
+
+    if reason:
+        message += f" (ACPI thermal-zone query: {reason}"
+        if "denied" in reason.casefold():
+            message += "; reading it can require administrator rights"
+        message += ")"
+
+    raise RuntimeError(message)
 
 
 def _collect_psutil_temperatures() -> list[dict]:
@@ -108,7 +119,13 @@ def _collect_psutil_temperatures() -> list[dict]:
 
 
 def _collect_windows_thermal_zones() -> list[dict]:
-    """Read Windows ACPI thermal zones through PowerShell."""
+    """Read Windows ACPI thermal zones through PowerShell.
+
+    Raises `CommandError` if the query itself fails; returns an empty
+    list only when Windows genuinely reports no thermal zones. Note
+    that an ACPI thermal zone is a board/chassis sensor and is not
+    always the CPU die temperature.
+    """
 
     command = (
         "Get-CimInstance "
@@ -118,40 +135,26 @@ def _collect_windows_thermal_zones() -> list[dict]:
         "| ConvertTo-Json -Compress"
     )
 
-    try:
-        completed = subprocess.run(
-            [
-                "powershell.exe",
-                "-NoProfile",
-                "-NonInteractive",
-                "-Command",
-                command,
-            ],
-            capture_output=True,
-            text=True,
-            timeout=5,
-            check=False,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return []
+    data = run_powershell_json(command)
 
-    if completed.returncode != 0 or not completed.stdout.strip():
-        return []
-
-    try:
-        data = json.loads(completed.stdout)
-    except json.JSONDecodeError:
+    if data is None:
         return []
 
     if isinstance(data, dict):
         data = [data]
 
+    if not isinstance(data, list):
+        return []
+
     sensors: list[dict] = []
 
     for item in data:
+        if not isinstance(item, dict):
+            continue
+
         raw_temperature = item.get("CurrentTemperature")
 
-        if raw_temperature is None:
+        if not isinstance(raw_temperature, (int, float)) or isinstance(raw_temperature, bool):
             continue
 
         # Windows reports temperature in tenths of Kelvin.
@@ -184,4 +187,4 @@ def _build_payload(
         "sensor_count": len(sensors),
         "current_temperature_c": max(temperatures),
         "sensors": sensors,
-    }
+    }
