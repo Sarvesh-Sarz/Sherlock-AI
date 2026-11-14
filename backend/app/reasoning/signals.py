@@ -28,6 +28,25 @@ _DISK_HIGH_USAGE_PERCENT = 85.0
 _DISK_CRITICAL_USAGE_PERCENT = 95.0
 _MEMORY_HIGH_USAGE_PERCENT = 85.0
 _STARTUP_HIGH_ENTRY_COUNT = 10
+_WIFI_WEAK_SIGNAL_PERCENT = 40
+_WIFI_VERY_WEAK_SIGNAL_PERCENT = 20
+_WIFI_LOW_LINK_SPEED_MBPS = 50
+_BATTERY_LOW_PERCENT = 20
+_TEMPERATURE_HIGH_C = 85.0
+_TEMPERATURE_CRITICAL_C = 95.0
+
+# Windows Device Manager (ConfigManagerErrorCode) meanings for the codes
+# most often seen on audio hardware, and which fix each one points to.
+_DEVICE_ERROR_MEANINGS = {
+    1: "the device is not configured correctly",
+    10: "the device cannot start",
+    22: "the device is disabled",
+    24: "the device is not present or is missing drivers",
+    28: "the drivers for the device are not installed",
+    31: "Windows cannot load the drivers the device requires",
+    43: "Windows stopped the device because it reported problems",
+}
+_DEVICE_DISABLED_CODE = 22
 
 
 @dataclass
@@ -70,6 +89,18 @@ def detect_signals(evidence: list[ToolResult]) -> list[Signal]:
                 signals.append(signal)
         elif result.tool_name == "startup":
             signal = _startup_signal(result)
+            if signal is not None:
+                signals.append(signal)
+        elif result.tool_name == "wifi":
+            signals.extend(_wifi_signals(result))
+        elif result.tool_name == "audio":
+            signals.extend(_audio_signals(result))
+        elif result.tool_name == "battery":
+            signal = _battery_signal(result)
+            if signal is not None:
+                signals.append(signal)
+        elif result.tool_name == "temperature":
+            signal = _temperature_signal(result)
             if signal is not None:
                 signals.append(signal)
 
@@ -155,5 +186,228 @@ def _startup_signal(result: ToolResult) -> Signal | None:
         recommendation=(
             "Consider reviewing Startup apps in Task Manager and disabling ones you don't need "
             "at every sign-in."
+        ),
+    )
+
+
+def _number(value: object) -> float | None:
+    """A real number, or None. Booleans are not numbers here."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return float(value)
+
+
+def _wifi_signals(result: ToolResult) -> list[Signal]:
+    payload = result.payload
+    signals: list[Signal] = []
+
+    # `connected` is only ever False when netsh explicitly reported a
+    # non-connected state; if it could not tell, the tool errors out and
+    # this function is never reached (unknown is not "disconnected").
+    if payload.get("connected") is False:
+        return [
+            Signal(
+                title="Wi-Fi is not connected to a network",
+                explanation=(
+                    "Windows reported that the Wi-Fi adapter is not connected to any network "
+                    "at the time of measurement, which would directly explain a missing or "
+                    "unreliable internet connection."
+                ),
+                supporting_evidence=["Wi-Fi connection state: not connected."],
+                confidence=Confidence.HIGH,
+                research_query="Windows Wi-Fi not connecting troubleshooting",
+                recommendation=(
+                    "Check that Wi-Fi is turned on and airplane mode is off, then reconnect to "
+                    "your network from the taskbar network icon."
+                ),
+            )
+        ]
+
+    if payload.get("connected") is not True:
+        return signals
+
+    strength = _number(payload.get("signal_percent"))
+    if strength is not None and strength < _WIFI_WEAK_SIGNAL_PERCENT:
+        signals.append(
+            Signal(
+                title="Wi-Fi signal is weak",
+                explanation=(
+                    f"Signal strength was {strength:.0f}% at the time of measurement. A weak "
+                    "signal is a plausible contributing factor to slow or dropping connections."
+                ),
+                supporting_evidence=[f"Wi-Fi signal strength: {strength:.0f}%."],
+                confidence=Confidence.HIGH if strength < _WIFI_VERY_WEAK_SIGNAL_PERCENT else Confidence.MEDIUM,
+                research_query="Windows weak Wi-Fi signal slow internet",
+                recommendation=(
+                    "Try moving closer to your router or access point, and check for walls or "
+                    "other obstacles between them."
+                ),
+            )
+        )
+
+    speed = _number(payload.get("link_speed_mbps"))
+    if speed is not None and 0 < speed < _WIFI_LOW_LINK_SPEED_MBPS:
+        signals.append(
+            Signal(
+                title="Wi-Fi link speed is low",
+                explanation=(
+                    f"The Wi-Fi link speed was {speed:g} Mbps at the time of measurement. That is "
+                    "low for a modern connection and can indicate a weak signal, interference, or "
+                    "an older Wi-Fi standard."
+                ),
+                supporting_evidence=[f"Wi-Fi link speed: {speed:g} Mbps."],
+                confidence=Confidence.MEDIUM,
+                research_query="Windows low Wi-Fi link speed",
+                recommendation=(
+                    "If your router supports it, try connecting on the 5 GHz band, and check "
+                    "whether other devices nearby are congesting the channel."
+                ),
+            )
+        )
+
+    return signals
+
+
+def _audio_signals(result: ToolResult) -> list[Signal]:
+    payload = result.payload
+    signals: list[Signal] = []
+
+    service_status = payload.get("audio_service_status")
+    if isinstance(service_status, str) and service_status.casefold() in {"stopped", "paused"}:
+        signals.append(
+            Signal(
+                title="The Windows Audio service is not running",
+                explanation=(
+                    f"The Windows Audio service reported its state as '{service_status}'. With "
+                    "this service not running, Windows cannot play or record sound, which would "
+                    "directly explain missing audio."
+                ),
+                supporting_evidence=[f"Windows Audio service state: {service_status}."],
+                confidence=Confidence.HIGH,
+                research_query="Windows Audio service not running no sound",
+                recommendation=(
+                    "Open Services (services.msc), find 'Windows Audio', and start it, setting "
+                    "its Startup type to Automatic."
+                ),
+            )
+        )
+
+    devices = payload.get("devices")
+    device_count = payload.get("device_count")
+    if device_count == 0:
+        signals.append(
+            Signal(
+                title="No audio devices were detected",
+                explanation=(
+                    "Windows reported no audio devices at the time of measurement, so there is "
+                    "nothing for it to play sound through or record from."
+                ),
+                supporting_evidence=["Audio devices detected: 0."],
+                confidence=Confidence.HIGH,
+                research_query="Windows no audio devices found",
+                recommendation=(
+                    "Open Device Manager and check 'Sound, video and game controllers'; if the "
+                    "audio device is missing, reinstall the audio driver from your PC maker."
+                ),
+            )
+        )
+
+    if not isinstance(devices, list):
+        return signals
+
+    for device in devices:
+        if not isinstance(device, dict):
+            continue
+        name = device.get("name") if isinstance(device.get("name"), str) and device.get("name") else "An audio device"
+        code = device.get("error_code")
+        status = device.get("status")
+
+        if isinstance(code, int) and not isinstance(code, bool) and code != 0:
+            meaning = _DEVICE_ERROR_MEANINGS.get(code)
+            detail = f"{meaning} (error code {code})" if meaning else f"error code {code}"
+            if code == _DEVICE_DISABLED_CODE:
+                recommendation = (
+                    "Open Device Manager, find the device under 'Sound, video and game "
+                    "controllers', right-click it, and choose Enable device."
+                )
+            else:
+                recommendation = (
+                    "Open Device Manager and update or reinstall the audio driver for this "
+                    "device, ideally from your PC maker's support page."
+                )
+            signals.append(
+                Signal(
+                    title=f"{name} reports a problem",
+                    explanation=(
+                        f"Windows reports that {detail}. A device in this state is a plausible "
+                        "cause of missing or distorted audio."
+                    ),
+                    supporting_evidence=[f"{name}: Device Manager {detail}."],
+                    confidence=Confidence.HIGH,
+                    research_query=f"Windows audio device error code {code}",
+                    recommendation=recommendation,
+                )
+            )
+        elif isinstance(status, str) and status and status != "OK":
+            signals.append(
+                Signal(
+                    title=f"{name} is not reporting a healthy status",
+                    explanation=(
+                        f"Windows reports the status '{status}' for this device instead of 'OK', "
+                        "which is a plausible contributing factor to audio problems."
+                    ),
+                    supporting_evidence=[f"{name}: status '{status}'."],
+                    confidence=Confidence.MEDIUM,
+                    research_query="Windows audio device status not OK",
+                    recommendation=(
+                        "Open Device Manager and check this device's properties; updating or "
+                        "reinstalling its driver often resolves this."
+                    ),
+                )
+            )
+
+    return signals
+
+
+def _battery_signal(result: ToolResult) -> Signal | None:
+    percent = _number(result.payload.get("percent"))
+    if percent is None or percent > _BATTERY_LOW_PERCENT or result.payload.get("plugged") is not False:
+        return None
+
+    return Signal(
+        title="Battery is low and the PC is unplugged",
+        explanation=(
+            f"The battery was at {percent:.0f}% and running without external power at the time "
+            "of measurement. A very low battery can cause the PC to slow down, dim the screen, "
+            "or shut off. This reading alone does not show the battery's overall health."
+        ),
+        supporting_evidence=[f"Battery: {percent:.0f}%, not plugged in."],
+        confidence=Confidence.LOW,
+        research_query="Windows laptop battery drains fast",
+        recommendation="Plug in the charger and see whether the problem continues while charging.",
+    )
+
+
+def _temperature_signal(result: ToolResult) -> Signal | None:
+    temperature = _number(result.payload.get("current_temperature_c"))
+    if temperature is None or temperature < _TEMPERATURE_HIGH_C:
+        return None
+
+    caveat = ""
+    if result.payload.get("source") == "windows_acpi":
+        caveat = " This reading comes from a Windows thermal zone, which is not always the CPU sensor."
+
+    return Signal(
+        title="A temperature sensor is reading high",
+        explanation=(
+            f"The hottest sensor read {temperature:.1f} C at the time of measurement. Sustained "
+            f"high temperatures can make a PC throttle its speed and feel slow.{caveat}"
+        ),
+        supporting_evidence=[f"Hottest sensor: {temperature:.1f} C."],
+        confidence=Confidence.HIGH if temperature >= _TEMPERATURE_CRITICAL_C else Confidence.MEDIUM,
+        research_query="Windows laptop overheating thermal throttling",
+        recommendation=(
+            "Make sure the vents are not blocked, use the PC on a hard flat surface, and clean "
+            "out dust if it has been a long time."
         ),
     )
