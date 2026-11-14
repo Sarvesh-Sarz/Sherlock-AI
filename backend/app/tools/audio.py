@@ -1,14 +1,28 @@
 """Audio diagnostic tool.
 
-Collects Windows audio-device information through PowerShell/WMI.
+Collects Windows audio-device information through PowerShell/WMI, plus
+the state of the Windows Audio service (the most common reason for "no
+sound" on an otherwise healthy machine).
+
+Payload shape on success:
+
+    {
+        "device_count": 2,
+        "working_device_count": 2,
+        "audio_service_status": "running",   # None if it could not be read
+        "devices": [{"name", "status", "manufacturer", "device_id", "error_code"}, ...],
+    }
 """
 
-import json
 import logging
-import subprocess
 from datetime import datetime, timezone
 
+import psutil
+
 from app.models.tool_result import ToolResult, ToolStatus
+from app.tools._command import CommandError, run_powershell_json
+
+AUDIO_SERVICE_NAME = "Audiosrv"
 
 logger = logging.getLogger(__name__)
 
@@ -55,44 +69,24 @@ def _collect() -> dict:
     )
 
     try:
-        completed = subprocess.run(
-            [
-                "powershell.exe",
-                "-NoProfile",
-                "-NonInteractive",
-                "-Command",
-                command,
-            ],
-            capture_output=True,
-            text=True,
-            timeout=5,
-            check=False,
-        )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        raise RuntimeError(
-            f"Could not query Windows audio devices: {exc}"
-        ) from exc
+        data = run_powershell_json(command)
+    except CommandError as exc:
+        raise RuntimeError(f"Could not query Windows audio devices: {exc}") from exc
 
-    if completed.returncode != 0:
-        error = completed.stderr.strip() or "PowerShell command failed"
-        raise RuntimeError(error)
-
-    if not completed.stdout.strip():
+    if data is None:
         raise RuntimeError("Windows returned no audio devices")
-
-    try:
-        data = json.loads(completed.stdout)
-    except json.JSONDecodeError as exc:
-        raise RuntimeError(
-            "Windows returned invalid audio-device data"
-        ) from exc
 
     if isinstance(data, dict):
         data = [data]
 
+    if not isinstance(data, list):
+        raise RuntimeError("Windows returned invalid audio-device data")
+
     devices = []
 
     for item in data:
+        if not isinstance(item, dict):
+            continue
         devices.append(
             {
                 "name": item.get("Name"),
@@ -113,5 +107,20 @@ def _collect() -> dict:
     return {
         "device_count": len(devices),
         "working_device_count": len(working_devices),
+        "audio_service_status": _audio_service_status(),
         "devices": devices,
     }
+
+
+def _audio_service_status() -> str | None:
+    """State of the Windows Audio service ("running", "stopped", ...).
+
+    Read-only. Returns None when it cannot be determined (not Windows,
+    or the service query is not permitted), which callers must treat as
+    unknown, never as healthy.
+    """
+    try:
+        return psutil.win_service_get(AUDIO_SERVICE_NAME).status()
+    except Exception as exc:  # noqa: BLE001 - AttributeError off-Windows, access errors on it
+        logger.info("could not read the %s service state: %s", AUDIO_SERVICE_NAME, exc)
+        return None
