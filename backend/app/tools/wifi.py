@@ -15,18 +15,28 @@ Payload shape on success:
         "radio_type": "802.11ac",
         "authentication": "WPA2-Personal",
     }
+
+If netsh does not report a connection state at all (no wireless
+adapter, the WLAN service stopped, or a non-English Windows whose
+labels differ), the tool returns an ERROR rather than guessing
+`connected: False`. "Unknown" must never be recorded as "not connected".
 """
 
 import logging
 import re
-import subprocess
+import sys
 from datetime import datetime, timezone
 
 from app.models.tool_result import ToolResult, ToolStatus
+from app.tools._command import first_line, run_command
 
 logger = logging.getLogger(__name__)
 
 TOOL_NAME = "wifi"
+
+# netsh writes in the console's OEM code page when its output is piped;
+# decoding it as UTF-8 garbles non-ASCII network names.
+_NETSH_ENCODING = "oem" if sys.platform == "win32" else "utf-8"
 
 
 def run() -> ToolResult:
@@ -62,26 +72,33 @@ def run() -> ToolResult:
 
 def _collect() -> dict[str, object | None]:
     """Gather Wi-Fi connection evidence using Windows netsh."""
-    result = subprocess.run(
+    result = run_command(
         ["netsh", "wlan", "show", "interfaces"],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=5,
-        check=False,
+        timeout=10,
+        encoding=_NETSH_ENCODING,
     )
+
+    # netsh explains its own failures on stdout ("There is no wireless
+    # interface on the system.", "The Wireless AutoConfig Service
+    # (wlansvc) is not running."), not stderr, so surface that text.
+    output = result.stdout or ""
 
     if result.returncode != 0:
         raise RuntimeError(
-            result.stderr.strip()
-            or "netsh wlan command failed"
+            first_line(output) or first_line(result.stderr) or "netsh wlan command failed"
         )
 
-    output = result.stdout
+    state = _parse_value(output, "State")
+
+    if state is None:
+        raise RuntimeError(
+            "netsh did not report a Wi-Fi connection state; this can mean there is no "
+            "wireless adapter, or that Windows is not set to English. "
+            f"Output began: {first_line(output)!r}"
+        )
 
     return {
-        "connected": _parse_connected(output),
+        "connected": state.casefold() == "connected",
         "ssid": _parse_value(output, "SSID"),
         "signal_percent": _parse_signal(output),
         "link_speed_mbps": _parse_link_speed(output),
@@ -103,17 +120,6 @@ def _parse_value(output: str, field: str) -> str | None:
     return match.group(1).strip()
 
 
-def _parse_connected(output: str) -> bool:
-    """Determine whether a Wi-Fi interface is currently connected."""
-    return bool(
-        re.search(
-            r"^\s*State\s*:\s*connected\s*$",
-            output,
-            re.MULTILINE | re.IGNORECASE,
-        )
-    )
-
-
 def _parse_signal(output: str) -> int | None:
     """Extract signal strength as a percentage."""
     value = _parse_value(output, "Signal")
@@ -131,20 +137,15 @@ def _parse_signal(output: str) -> int | None:
 
 def _parse_link_speed(output: str) -> float | None:
     """Extract receive/transmit link speed in Mbps."""
-    receive = _parse_value(output, "Receive rate (Mbps)")
+    for field in ("Receive rate (Mbps)", "Transmit rate (Mbps)"):
+        value = _parse_value(output, field)
 
-    if receive is not None:
+        if value is None:
+            continue
+
         try:
-            return float(receive)
+            return float(value)
         except ValueError:
-            pass
-
-    transmit = _parse_value(output, "Transmit rate (Mbps)")
-
-    if transmit is not None:
-        try:
-            return float(transmit)
-        except ValueError:
-            pass
+            continue
 
     return None
