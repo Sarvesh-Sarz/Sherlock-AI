@@ -12,15 +12,19 @@ description (see `planner._contains_keyword`), not a raw substring — so
 some unrelated longer word.
 
 This is intentionally simple pattern matching, not NLP: it won't catch
-synonyms, typos, or variant spellings ("Wi-Fi" vs "wifi"). That's an
-accepted limitation of a keyword-based planner, not a bug — see the
+synonyms or typos ("Wi-Fi" and "wifi" are both listed because both
+spellings are common). That's an accepted limitation of a keyword-based planner, not a bug — see the
 Planner's docstring.
 """
 
 KEYWORD_RULES: dict[str, list[str]] = {
     "slow": ["cpu", "memory", "startup", "disk"],
-    "wifi": ["wifi"],
-    "internet": ["wifi"],
+    # Wi-Fi measures the link to the router; network measures the connection
+    # beyond it. Internet complaints need both to tell the two apart.
+    "wifi": ["wifi", "network"],
+    "wi-fi": ["wifi", "network"],
+    "internet": ["wifi", "network"],
+    "network": ["wifi", "network"],
     "battery": ["battery", "cpu", "startup"],
     "hot": ["cpu", "temperature"],
     "overheating": ["cpu", "temperature"],
@@ -41,7 +45,9 @@ KEYWORD_RULES: dict[str, list[str]] = {
 # diagnostics when a more specific problem category is present.
 SPECIALIZED_KEYWORDS: set[str] = {
     "wifi",
+    "wi-fi",
     "internet",
+    "network",
 }
 
 DEFAULT_TOOLS: list[str] = ["cpu"]
