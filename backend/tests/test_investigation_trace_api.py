@@ -24,6 +24,7 @@ def test_trace_survives_a_round_trip_through_get(client: TestClient) -> None:
     fetched = client.get(f"/investigation/{started['case_id']}").json()
 
     assert fetched["trace"] == started["trace"]
-    # The Planner's wifi-only decision is visible, and no broad scan sneaks in.
+    # The Planner's decision is visible: link + connection checks, and no
+    # broad CPU/memory/disk scan sneaks in.
     plan_event = fetched["trace"][0]
-    assert plan_event["details"]["tools"] == ["wifi"]
+    assert plan_event["details"]["tools"] == ["wifi", "network"]
