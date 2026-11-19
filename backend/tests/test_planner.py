@@ -1,13 +1,16 @@
 from app.planner.planner import Planner
 
 
-def test_wifi_slow_uses_wifi_only():
+def test_wifi_slow_checks_the_link_and_the_connection_but_not_the_whole_pc():
     planner = Planner()
 
     plan = planner.create_plan("My WiFi is very slow")
 
-    assert plan.tools_to_execute == ["wifi"]
+    # wifi = the link to the router; network = the connection beyond it.
+    assert plan.tools_to_execute == ["wifi", "network"]
     assert plan.matched_keywords == ["wifi"]
+    # "slow" must not widen this into the broad CPU/memory/disk scan.
+    assert not {"cpu", "memory", "startup", "disk"} & set(plan.tools_to_execute)
 
 
 def test_slow_computer_uses_generic_diagnostics():
@@ -24,13 +27,27 @@ def test_slow_computer_uses_generic_diagnostics():
     assert plan.matched_keywords == ["slow"]
 
 
-def test_internet_problem_uses_wifi():
+def test_internet_problem_checks_the_link_and_the_connection():
     planner = Planner()
 
     plan = planner.create_plan("My internet is not working")
 
-    assert plan.tools_to_execute == ["wifi"]
+    assert plan.tools_to_execute == ["wifi", "network"]
     assert plan.matched_keywords == ["internet"]
+
+
+def test_hyphenated_wi_fi_spelling_is_recognised():
+    plan = Planner().create_plan("My Wi-Fi keeps dropping")
+
+    assert plan.tools_to_execute == ["wifi", "network"]
+    assert plan.matched_keywords == ["wi-fi"]
+
+
+def test_network_slow_does_not_trigger_the_generic_scan():
+    plan = Planner().create_plan("the network is slow today")
+
+    assert plan.tools_to_execute == ["wifi", "network"]
+    assert "cpu" not in plan.tools_to_execute
 
 
 def test_battery_and_hot_can_match_together():
@@ -86,4 +103,4 @@ def test_duplicate_tools_are_removed():
         "startup",
         "disk",
         "temperature",
-    ]
+    ]
