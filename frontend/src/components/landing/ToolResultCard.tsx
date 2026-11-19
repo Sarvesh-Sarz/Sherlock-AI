@@ -211,15 +211,41 @@ function formatVolumeLabel(mountpoint: string): string {
   return mountpoint.replace(/[\\/]+$/, '') || mountpoint;
 }
 
+/**
+ * Plain-language names for payload fields that would read badly if
+ * generated from the key. "Wi-Fi link rate" is deliberately not called
+ * "speed": it is the radio rate between this PC and the router, which is
+ * a different thing from internet speed, and the old label invited that
+ * confusion.
+ */
+const FIELD_LABELS: Record<string, string> = {
+  ssid: 'Network name',
+  signal_percent: 'Signal strength (%)',
+  link_speed_mbps: 'Wi-Fi link rate (Mbps)',
+  radio_type: 'Wi-Fi standard',
+  host: 'Checked against',
+  attempted: 'Checks attempted',
+  successful: 'Checks completed',
+  failed_samples: 'Checks failed',
+  dns_ms: 'Name lookup (ms)',
+  connect_ms: 'Connect time (ms)',
+  first_byte_ms: 'Time to first response (ms)',
+  response_ok: 'Expected response received',
+};
+
 function formatKey(key: string): string {
-  return key
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
+  return (
+    FIELD_LABELS[key] ??
+    key
+      .split('_')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
+  );
 }
 
 function formatUnknown(value: unknown): string {
   if (value === null || value === undefined) return '—';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   return typeof value === 'string' ? value : JSON.stringify(value);
 }
 
