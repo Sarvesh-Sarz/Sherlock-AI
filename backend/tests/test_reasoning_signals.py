@@ -206,3 +206,111 @@ def test_failed_wifi_still_yields_an_honest_no_finding_report():
 def test_new_signals_feed_research_queries():
     evidence = [ev("audio", {"device_count": 1, "audio_service_status": "stopped", "devices": [HEALTHY_DEVICE]})]
     assert "Windows Audio service not running no sound" in build_research_queries("no sound", evidence)
+
+
+# ---- Network (connection beyond the router) ---------------------------------------
+
+def net(**overrides):
+    payload = {
+        "host": "www.msftconnecttest.com", "attempted": 3, "successful": 3, "failed_samples": 0,
+        "dns_ms": 30.0, "connect_ms": 40.0, "first_byte_ms": 80.0, "response_ok": True,
+    }
+    return ev("network", {**payload, **overrides})
+
+
+def test_a_healthy_connection_produces_no_signal():
+    assert detect_signals([net()]) == []
+
+
+@pytest.mark.parametrize("ms, confidence", [(700.0, Confidence.MEDIUM), (2400.0, Confidence.HIGH)])
+def test_slow_internet_responses(ms, confidence):
+    signal = only([net(first_byte_ms=ms)])
+    assert signal.title == "Internet responses are slow"
+    assert signal.confidence == confidence
+    assert "another device" in signal.recommendation  # separates "this PC" from "the network"
+
+
+def test_slow_dns_is_its_own_signal_and_is_careful_on_managed_networks():
+    signal = only([net(dns_ms=650.0)])
+    assert signal.title == "Looking up website names is slow"
+    assert "work or school network" in signal.recommendation
+
+
+def test_unexpected_response_suggests_a_portal_or_proxy():
+    signal = only([net(response_ok=False)])
+    assert signal.title == "The network did not return the expected response"
+    assert "proxy" in signal.explanation and signal.confidence == Confidence.MEDIUM
+
+
+def test_partial_failures_are_reported_with_counts():
+    signal = only([net(successful=2, failed_samples=1)])
+    assert signal.title == "Some internet connection checks failed"
+    assert "1 of 3" in signal.explanation
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [{"first_byte_ms": None}, {"first_byte_ms": "slow"}, {"dns_ms": True}, {"attempted": None, "failed_samples": None}, {"response_ok": None}],
+)
+def test_missing_or_malformed_network_values_are_not_conclusions(overrides):
+    assert detect_signals([net(**overrides)]) == []
+
+
+def test_a_failed_network_check_is_unknown_not_a_slow_connection():
+    assert detect_signals([ev("network", {"error": "timed out"}, ToolStatus.ERROR)]) == []
+
+
+# ---- The case from the user's own machine: healthy Wi-Fi link, slow internet -------------
+
+def wifi_ev(**overrides):
+    return ev("wifi", {"connected": True, "signal_percent": 88, "link_speed_mbps": 200.0, **overrides})
+
+
+def summary_for(complaint, evidence):
+    return BaselineReasoner().investigate("c1", complaint, plan(), evidence, []).summary
+
+
+def test_healthy_wifi_link_with_an_internet_complaint_explains_link_rate_vs_internet_speed():
+    summary = summary_for("my wifi speed is only 6 mbps", [wifi_ev()])
+
+    assert "88% signal, 200 Mbps link rate" in summary
+    assert "not the speed of your internet connection" in summary
+    assert "beyond the Wi-Fi link" in summary
+
+
+def test_the_note_is_added_even_when_other_findings_exist():
+    summary = summary_for("my internet is slow", [wifi_ev(), net(dns_ms=700.0)])
+
+    assert "possible contributing factor" in summary  # the DNS finding
+    assert "not the speed of your internet connection" in summary
+
+
+def test_no_reassurance_when_the_wifi_link_is_actually_weak():
+    summary = summary_for("my wifi is slow", [wifi_ev(signal_percent=25)])
+    assert "looked healthy" not in summary
+
+
+def test_no_reassurance_when_the_link_rate_is_low():
+    summary = summary_for("my wifi is slow", [wifi_ev(link_speed_mbps=20.0)])
+    assert "looked healthy" not in summary
+
+
+def test_no_reassurance_from_a_failed_or_disconnected_wifi_reading():
+    assert "looked healthy" not in summary_for("my wifi is slow", [ev("wifi", {"error": "x"}, ToolStatus.ERROR)])
+    assert "looked healthy" not in summary_for("my wifi is slow", [ev("wifi", {"connected": False})])
+
+
+def test_no_note_for_complaints_that_are_not_about_the_connection():
+    assert "looked healthy" not in summary_for("my laptop is slow", [wifi_ev()])
+
+
+def test_no_note_when_link_values_are_missing():
+    assert "looked healthy" not in summary_for("my wifi is slow", [wifi_ev(signal_percent=None)])
+
+
+def test_a_failed_reading_never_reassures_even_if_its_payload_looks_healthy():
+    # Only the status check can stop this one: the values themselves are perfect.
+    healthy_but_failed = ev(
+        "wifi", {"connected": True, "signal_percent": 95, "link_speed_mbps": 400.0}, ToolStatus.ERROR
+    )
+    assert "looked healthy" not in summary_for("my wifi is slow", [healthy_but_failed])
