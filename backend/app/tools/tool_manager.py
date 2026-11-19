@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 
 from app.models.investigation_plan import InvestigationPlan
 from app.models.tool_result import ToolResult, ToolStatus
-from app.tools import cpu, memory, disk, startup, wifi, battery, temperature, audio
+from app.tools import cpu, memory, disk, startup, wifi, battery, temperature, audio, network
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +41,7 @@ class ToolManager:
         ("disk", disk.run),
         ("startup", startup.run),
         ("wifi", wifi.run),
+        ("network", network.run),
         ("battery", battery.run),
         ("temperature", temperature.run),
         ("audio", audio.run),
