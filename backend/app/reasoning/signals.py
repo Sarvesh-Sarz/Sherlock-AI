@@ -31,6 +31,9 @@ _STARTUP_HIGH_ENTRY_COUNT = 10
 _WIFI_WEAK_SIGNAL_PERCENT = 40
 _WIFI_VERY_WEAK_SIGNAL_PERCENT = 20
 _WIFI_LOW_LINK_SPEED_MBPS = 50
+_NETWORK_SLOW_RESPONSE_MS = 500
+_NETWORK_VERY_SLOW_RESPONSE_MS = 1500
+_NETWORK_SLOW_DNS_MS = 300
 _BATTERY_LOW_PERCENT = 20
 _TEMPERATURE_HIGH_C = 85.0
 _TEMPERATURE_CRITICAL_C = 95.0
@@ -93,6 +96,8 @@ def detect_signals(evidence: list[ToolResult]) -> list[Signal]:
                 signals.append(signal)
         elif result.tool_name == "wifi":
             signals.extend(_wifi_signals(result))
+        elif result.tool_name == "network":
+            signals.extend(_network_signals(result))
         elif result.tool_name == "audio":
             signals.extend(_audio_signals(result))
         elif result.tool_name == "battery":
@@ -261,6 +266,94 @@ def _wifi_signals(result: ToolResult) -> list[Signal]:
                 recommendation=(
                     "If your router supports it, try connecting on the 5 GHz band, and check "
                     "whether other devices nearby are congesting the channel."
+                ),
+            )
+        )
+
+    return signals
+
+
+def _network_signals(result: ToolResult) -> list[Signal]:
+    payload = result.payload
+    signals: list[Signal] = []
+
+    if payload.get("response_ok") is False:
+        signals.append(
+            Signal(
+                title="The network did not return the expected response",
+                explanation=(
+                    "A request for Microsoft's connectivity-check page came back as something "
+                    "else. That usually means the network is showing a sign-in page or is "
+                    "routing web traffic through a proxy or filter, which can slow or block "
+                    "browsing."
+                ),
+                supporting_evidence=["Connectivity-check response: not the expected page."],
+                confidence=Confidence.MEDIUM,
+                research_query="Windows captive portal proxy slow internet",
+                recommendation=(
+                    "Open a web page to see whether the network asks you to sign in. On a work "
+                    "or school network, ask its IT team whether a proxy or content filter is in use."
+                ),
+            )
+        )
+
+    attempted = _number(payload.get("attempted"))
+    failed = _number(payload.get("failed_samples"))
+    if attempted and failed and failed > 0:
+        signals.append(
+            Signal(
+                title="Some internet connection checks failed",
+                explanation=(
+                    f"{failed:.0f} of {attempted:.0f} connection checks failed even though others "
+                    "succeeded. An intermittent connection like that is a plausible cause of "
+                    "pages that hang or load unevenly."
+                ),
+                supporting_evidence=[f"{failed:.0f} of {attempted:.0f} connection checks failed."],
+                confidence=Confidence.MEDIUM,
+                research_query="Windows intermittent internet connection drops",
+                recommendation=(
+                    "Note whether the problem comes and goes at certain times or places, and try "
+                    "restarting your router if it is your own network."
+                ),
+            )
+        )
+
+    response = _number(payload.get("first_byte_ms"))
+    if response is not None and response >= _NETWORK_SLOW_RESPONSE_MS:
+        signals.append(
+            Signal(
+                title="Internet responses are slow",
+                explanation=(
+                    f"A tiny request took {response:.0f} ms to start receiving a reply. Responses "
+                    "this slow suggest congestion or a slow connection beyond the Wi-Fi link, "
+                    "and are a plausible cause of slow-feeling browsing."
+                ),
+                supporting_evidence=[f"Time to first response: {response:.0f} ms."],
+                confidence=Confidence.HIGH if response >= _NETWORK_VERY_SLOW_RESPONSE_MS else Confidence.MEDIUM,
+                research_query="slow internet high latency Windows Wi-Fi",
+                recommendation=(
+                    "Try the same website on another device on the same network. If it is slow "
+                    "there too, the problem is the network or internet service, not this PC."
+                ),
+            )
+        )
+
+    dns = _number(payload.get("dns_ms"))
+    if dns is not None and dns >= _NETWORK_SLOW_DNS_MS:
+        signals.append(
+            Signal(
+                title="Looking up website names is slow",
+                explanation=(
+                    f"Resolving a website name took {dns:.0f} ms. Slow name lookups add a delay "
+                    "to every new site you open, even when the connection itself is fast."
+                ),
+                supporting_evidence=[f"DNS lookup time: {dns:.0f} ms."],
+                confidence=Confidence.MEDIUM,
+                research_query="Windows slow DNS lookup change DNS server",
+                recommendation=(
+                    "If this is your own network, consider switching your DNS server to a public "
+                    "one such as 1.1.1.1 or 8.8.8.8 in your network adapter settings. On a work "
+                    "or school network, leave DNS as it is and ask IT."
                 ),
             )
         )
