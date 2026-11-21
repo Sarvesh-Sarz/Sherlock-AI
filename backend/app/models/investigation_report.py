@@ -96,4 +96,10 @@ class InvestigationReport(BaseModel):
         "(e.g. 'deterministic_baseline'), so a report is never ambiguous about whether "
         "an AI model was involved."
     )
+    review_notes: list[str] = Field(
+        default_factory=list,
+        description="Plain-language notes on anything removed or limited while building this "
+        "report (for example an AI-suggested cause the evidence did not support), so the "
+        "report never silently differs from what a model produced.",
+    )
     created_at: datetime
