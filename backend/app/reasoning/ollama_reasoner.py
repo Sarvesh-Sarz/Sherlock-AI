@@ -37,6 +37,7 @@ from app.models.investigation_plan import InvestigationPlan
 from app.models.investigation_report import Confidence, Hypothesis, InvestigationReport
 from app.models.research_result import ResearchResult
 from app.models.tool_result import ToolResult, ToolStatus
+from app.reasoning.grounding import collect_facts, ground_hypotheses, overall_confidence
 from app.reasoning.reasoner import NO_RESEARCH_NOTICE, Reasoner
 from app.models.investigation_report import (
     Confidence,
@@ -197,6 +198,22 @@ or editing the registry.
 }"""
 
 
+_NO_SUPPORTED_CAUSE_SUMMARY = (
+    "The AI model did not propose any cause that the collected evidence supports, so no cause is "
+    "reported. This does not rule out a problem the current diagnostic tools do not measure."
+)
+
+
+def _review_notes(dropped_titles: list[str], dropped_recommendations: bool) -> list[str]:
+    notes: list[str] = []
+    for title in dropped_titles:
+        shown = title if len(title) <= 80 else title[:77] + "..."
+        notes.append(f'Removed an AI-suggested cause the collected evidence did not support: "{shown}".')
+    if dropped_recommendations:
+        notes.append("Removed the AI's recommendations because no supported cause remained.")
+    return notes
+
+
 class OllamaReasoningError(RuntimeError):
     """Raised when Ollama is unreachable or its response can't be used.
 
@@ -233,19 +250,33 @@ class OllamaReasoner(Reasoner):
         user_prompt = _build_user_prompt(problem_description, successful_evidence, research)
 
         body = self._call_ollama(user_prompt)
-        summary, hypotheses, recommendations, confidence = _parse_report_body(body)
+        summary, hypotheses, recommendations, _model_confidence = _parse_report_body(body)
+
+        # The prompt asks the model to cite only real evidence, but a prompt
+        # cannot make a small model comply. Enforce it on the output: a cause
+        # the model cannot back with a real measurement is removed (see
+        # app.reasoning.grounding), and so is everything that depended on it.
+        grounding = ground_hypotheses(hypotheses, collect_facts(successful_evidence))
+        review_notes = _review_notes(grounding.dropped_titles, bool(recommendations) and not grounding.kept)
+
+        if not grounding.kept:
+            summary = _NO_SUPPORTED_CAUSE_SUMMARY
+            recommendations = []
 
         return InvestigationReport(
             case_id=case_id,
             problem_description=problem_description,
             summary=summary,
-            hypotheses=hypotheses,
+            hypotheses=grounding.kept,
             evidence_used=evidence,
             recommendations=recommendations,
-            confidence=confidence,
+            # Derived from the hypotheses that survived, never taken from the
+            # model's own self-assessment.
+            confidence=overall_confidence(grounding.kept),
             research_sources=research,
             research_notice=None if research else NO_RESEARCH_NOTICE,
             reasoning_method=f"ollama:{self._model}",
+            review_notes=review_notes,
             created_at=datetime.now(timezone.utc),
         )
 
@@ -457,4 +488,4 @@ def _format_research(research: list[ResearchResult]) -> str:
     return "\n".join(
         f"- {item.title}: {item.snippet[:500]}"
         for item in research[:3]
-    )
+    )
