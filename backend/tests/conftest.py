@@ -30,6 +30,21 @@ def no_real_internet_in_tests(request, monkeypatch):
     monkeypatch.setattr(network, "_measure_once", offline)
 
 
+@pytest.fixture(autouse=True)
+def no_real_ollama_in_tests(monkeypatch):
+    """Investigations started through the API build the real reasoner, which
+    would call whatever Ollama is running on the developer's machine: slow
+    (a small model can take a minute or more) and non-deterministic. Make the
+    model look unreachable instead. Tests that exercise the Ollama client
+    install their own fake `httpx.post`, which takes precedence."""
+    import httpx
+
+    def unreachable(*args, **kwargs):
+        raise httpx.ConnectError("Ollama is disabled in tests")
+
+    monkeypatch.setattr("app.reasoning.ollama_reasoner.httpx.post", unreachable)
+
+
 @pytest.fixture()
 def client() -> TestClient:
     """A fresh TestClient per test, built from a fresh app instance.
