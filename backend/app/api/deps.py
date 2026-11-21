@@ -12,7 +12,7 @@ from functools import lru_cache
 from app.core.config import get_settings
 from app.planner.planner import Planner
 from app.reasoning.baseline_reasoner import BaselineReasoner
-from app.reasoning.fallback_reasoner import FallbackReasoner
+from app.reasoning.hybrid_reasoner import HybridReasoner
 from app.reasoning.ollama_reasoner import OllamaReasoner
 from app.reasoning.reasoner import Reasoner
 from app.research.researcher import UnconfiguredResearcher
@@ -78,13 +78,14 @@ def get_researcher():
 def get_reasoner() -> Reasoner:
     """Return the process-wide Reasoner.
 
-    Tries a local Ollama-backed reasoner first and falls back to the
-    deterministic `BaselineReasoner` if Ollama isn't reachable, the
-    configured model isn't pulled, or its response doesn't parse into a
-    valid report (see `FallbackReasoner`, `OllamaReasoner`). Sherlock
-    works with zero LLM configured — exactly as it did before this
-    existed — and gets richer reasoning automatically the moment a
-    local model is available; nothing needs to be enabled explicitly.
+    The deterministic `BaselineReasoner` always runs and is never
+    overridden; a local Ollama model can only add conclusions that survive
+    an evidence check (see `HybridReasoner`, `OllamaReasoner`,
+    `app.reasoning.grounding`). If Ollama isn't reachable, the configured
+    model isn't pulled, or its response doesn't parse, the rule-based
+    report is returned on its own, so Sherlock works with zero LLM
+    configured and gets richer reasoning automatically the moment a local
+    model is available; nothing needs to be enabled explicitly.
     Swapping in a different local backend (AMD-optimized inference,
     another runtime) means changing this one function, not
     `InvestigationService` or anything that calls it.
@@ -95,7 +96,7 @@ def get_reasoner() -> Reasoner:
         model=settings.ollama_model,
         timeout_seconds=settings.ollama_timeout_seconds,
     )
-    return FallbackReasoner(primary=ollama_reasoner, fallback=BaselineReasoner())
+    return HybridReasoner(rules=BaselineReasoner(), ai=ollama_reasoner)
 
 
 def get_investigation_service() -> InvestigationService:
