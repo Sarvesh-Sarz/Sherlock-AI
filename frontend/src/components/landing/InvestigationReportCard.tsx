@@ -30,6 +30,19 @@ export function InvestigationReportCard({
           <p className="text-sm leading-6 text-case-muted">
             {report.summary}
           </p>
+
+          {report.review_notes && report.review_notes.length > 0 ? (
+            <div className="mt-3 border-l-2 border-case-border-strong pl-3">
+              <p className="text-xs text-case-faint">Evidence check</p>
+              <ul className="mt-1 flex flex-col gap-1">
+                {report.review_notes.map((note) => (
+                  <li key={note} className="text-xs leading-5 text-case-muted">
+                    {note}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
 
         {/* Overall confidence */}
