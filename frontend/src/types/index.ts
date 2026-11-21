@@ -198,6 +198,8 @@ export interface InvestigationReport {
   research_sources: ResearchSource[];
   research_notice?: string | null;
   reasoning_method: string;
+  /** Anything removed or limited while building the report, e.g. an AI cause the evidence did not support. */
+  review_notes?: string[];
   created_at: string;
 }
 
