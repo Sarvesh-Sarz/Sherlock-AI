@@ -7,6 +7,8 @@ export const STATUS_LABELS: Record<CaseStatus, string> = {
   investigating: 'Investigating',
   reasoning: 'Reasoning',
   reporting: 'Reporting',
-  resolved: 'Resolved',
+  // The backend sets this when a report has been produced. It does NOT mean
+  // the problem was fixed, so it must not read as "Resolved".
+  resolved: 'Report ready',
   failed: 'Failed',
 };
