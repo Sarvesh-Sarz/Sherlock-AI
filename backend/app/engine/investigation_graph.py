@@ -267,11 +267,15 @@ class InvestigationGraph:
             )
             return {"error": str(exc), "report": None, "trace": [*state["trace"], event]}
         method = getattr(report, "reasoning_method", None)
+        notes = list(getattr(report, "review_notes", None) or [])
+        message = "Reasoning complete" + (f" using {method}." if method else ".")
+        if notes:
+            message += " " + " ".join(notes)
         event = TraceEvent(
             stage=TraceStage.REASON,
             iteration=state["iteration"],
-            message="Reasoning complete" + (f" using {method}." if method else "."),
-            details={"succeeded": True, "reasoning_method": method},
+            message=message,
+            details={"succeeded": True, "reasoning_method": method, "review_notes": notes},
         )
         return {"report": report, "error": None, "trace": [*state["trace"], event]}
 
